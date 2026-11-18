@@ -24,6 +24,7 @@ import {
 } from '../../db/models/index.js';
 import { todayInTimeZone } from '../workspaces/internal/workingDays.js';
 import { computeFeaturePipeline, type PipelineSubtask } from './leaderPipelineRules.js';
+import { getLeaderTeamLoad } from './teamLoad.js';
 
 /**
  * LEADER-PIPELINE-HUB P1 (ADR-045): load and compute the pipeline summary for the Workspaces the
@@ -59,6 +60,15 @@ export async function getLeaderPipelineSummary(
   });
   const activeIds = workspaces.map((workspace) => workspace.id);
   const workspaceById = new Map(workspaces.map((workspace) => [workspace.id, workspace]));
+  // P3: week of the first Workspace (alphabetical) decides "this week" for the team load.
+  const teamLoad = await getLeaderTeamLoad(
+    activeIds,
+    workspaces[0]?.timezone ?? 'Asia/Jakarta',
+    now,
+  );
+  const overCapacity = new Map(
+    teamLoad.members.filter((member) => member.percent > 100).map((m) => [m.userId, m]),
+  );
   const empty: LeaderPipelineSummary = {
     generatedAt: now.toISOString(),
     workspaces: workspaces.map((w) => ({ id: w.id, name: w.name })),
@@ -72,6 +82,7 @@ export async function getLeaderPipelineSummary(
     },
     features: [],
     openBlockers: [],
+    teamLoad,
   };
   if (!activeIds.length) return empty;
 
@@ -258,6 +269,20 @@ export async function getLeaderPipelineSummary(
       },
       now,
     });
+    // P3: an open Subtask whose assignee is over capacity this week puts the Feature at risk.
+    for (const child of children) {
+      if (child.status === 'done' || child.status === 'canceled' || !child.assigneeId) continue;
+      const member = overCapacity.get(child.assigneeId);
+      if (!member) continue;
+      result.reasons.push({
+        code: 'assignee_over_capacity',
+        message: `${member.name} melebihi kapasitas minggu ini (${member.percent}%) · Subtask "${child.title}"`,
+        taskId: child.id,
+        blockerId: null,
+        bugId: null,
+      });
+      if (result.health === 'on_track') result.health = 'at_risk';
+    }
     return {
       featureId: feature.id,
       featureName: feature.title,
@@ -332,5 +357,6 @@ export async function getLeaderPipelineSummary(
     },
     features: pipeline,
     openBlockers,
+    teamLoad,
   };
 }

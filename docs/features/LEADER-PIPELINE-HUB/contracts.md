@@ -15,6 +15,12 @@ dengan pekerjaan LEADER-SDLC-HUB). Endpoint P1: `GET /v1/leader/pipeline` dengan
 `workspaceIds=<uuid,uuid>`; P4: `POST /v1/workspaces/:workspaceId/tasks/:taskId/blockers/:blockerId/ping`.
 View-model UI di `organisms/leaderHub/types.ts` dipetakan dari contract.
 
+### Beban tim (P3)
+
+`GET /v1/leader/pipeline` mengembalikan `teamLoad` (`LeaderTeamLoadSchema`): `weekFrom`/`weekTo`, `areas`
+(persen gabungan per spesialisasi), `members` (persen per anggota dari semua Workspace aktifnya,
+kapasitas mingguan, jumlah Subtask tanpa effort). Hanya angka; judul kerjaan dari Workspace lain tidak dikirim.
+
 ### Ping PIC (P4)
 
 `POST /v1/workspaces/:workspaceId/tasks/:taskId/blockers/:blockerId/ping`, hanya Owner/Admin Workspace itu.
