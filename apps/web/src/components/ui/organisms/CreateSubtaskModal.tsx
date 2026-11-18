@@ -25,6 +25,7 @@ import { requirementService } from '../../../lib/api/requirementService';
 import { useAssignmentConflictPreview } from '../../../lib/hooks/useAssignmentConflictPreview';
 import { AssignmentConflictBanner } from '../molecules/AssignmentConflictBanner';
 import { EffortPicker } from '../molecules/EffortPicker';
+import { effortBaselineHint, useEffortBaseline } from '../../../lib/hooks/useEffortBaseline';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { enqueueSnackbar } from '../../../store/uiSlice';
 import { RootState } from '../../../store/store';
@@ -67,6 +68,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [effort, setEffort] = useState<TaskEffort | null>(null);
+  const effortBaseline = useEffortBaseline(activeWorkspaceId, isOpen);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { range: featureRange, refreshAfterError } = useFeatureScheduleRange(
@@ -542,6 +544,7 @@ export const CreateSubtaskModal: React.FC<CreateSubtaskModalProps> = ({
           onChange={setEffort}
           required={isScheduled}
           error={effortMissing ? SUBTASK_EFFORT_REQUIRED_MESSAGE : null}
+          hint={effortBaselineHint(effortBaseline, effort)}
         />
 
         {/* Advisory Conflict Banner */}

@@ -32,6 +32,13 @@ const item = (n: number, over: Partial<MyWorkReport['items'][number]>) => ({
   daysLate: null,
   reasons: [],
   openBlockerCount: 0,
+  timeFairness: {
+    level: 'not_applicable' as const,
+    ratio: null,
+    plannedWorkingDays: null,
+    medianWorkingDays: null,
+    sampleCount: 0,
+  },
   ...over,
 });
 
@@ -52,7 +59,15 @@ const report: MyWorkReport = {
       workspaceId: WS_B,
       workspaceName: 'Mobile',
     }),
-    item(3, {}),
+    item(3, {
+      timeFairness: {
+        level: 'tight',
+        ratio: 0.4,
+        plannedWorkingDays: 2,
+        medianWorkingDays: 5,
+        sampleCount: 9,
+      },
+    }),
   ],
   load: {
     weeklyCapacityPoints: 10,
@@ -102,6 +117,7 @@ describe('MyWorkReportPage (MY-WORK-REPORT P1/P2)', () => {
     expect(screen.getByText(/Lewat 3 hari dari tenggat/)).toBeInTheDocument();
     expect(screen.getByText(/Ada hambatan terbuka/)).toBeInTheDocument();
     expect(screen.getByText(/1 subtask berjadwal belum punya effort/)).toBeInTheDocument();
+    expect(screen.getByText('Terlalu ketat (0,4×)')).toBeInTheDocument();
     expect(
       screen.getByText(/Melebihi kapasitas di 1 hari; penyumbang terbesar "Kerjaan 3"/),
     ).toBeInTheDocument();

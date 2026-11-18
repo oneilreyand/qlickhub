@@ -13,6 +13,8 @@ import { UserTimeOffModel, WorkspaceHolidayModel } from '../../db/models/index.j
 import { getEffectiveWeeklyCapacities } from '../capacity/internal/personalCapacity.js';
 import { todayInTimeZone, type WorkingDayCalendar } from '../workspaces/internal/workingDays.js';
 import { classifyPunctuality, computeDailyLoad, eachDate } from './workReportRules.js';
+import { classifyTimeFairness, getEffortBaselines } from './fairness.js';
+import { countWorkingDays } from '../workspaces/internal/workingDays.js';
 
 /**
  * MY-WORK-REPORT P1/P2 (ADR-044, FLOW-013): the caller's own work in their active Workspaces.
@@ -169,6 +171,7 @@ export async function getMyWorkReport(
       )
     : [];
   const blockersByTask = new Map(blockerCounts.map((row) => [row.task_id, row.count]));
+  const baselines = await getEffortBaselines(workspaceIds, now);
 
   const items: MyWorkItem[] = [];
   for (const row of rows) {
@@ -207,6 +210,10 @@ export async function getMyWorkReport(
       daysLate: result.daysLate,
       reasons: result.reasons,
       openBlockerCount,
+      timeFairness: classifyTimeFairness(
+        row.effort && startDate && dueDate ? countWorkingDays(startDate, dueDate, calendar) : null,
+        row.effort ? baselines.get(row.workspace_id)?.get(row.effort) : undefined,
+      ),
     });
   }
 

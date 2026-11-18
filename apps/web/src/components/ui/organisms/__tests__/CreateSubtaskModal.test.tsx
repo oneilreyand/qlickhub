@@ -26,6 +26,23 @@ vi.mock('../../../../lib/api/taskService', () => ({
   },
 }));
 
+vi.mock('../../../../lib/api/myWorkReportService', () => ({
+  myWorkReportService: {
+    getEffortBaseline: vi.fn().mockResolvedValue({
+      workspaceId: '21111111-2222-4333-8444-555555555555',
+      windowDays: 90,
+      minSamples: 5,
+      efforts: {
+        xs: { medianWorkingDays: null, sampleCount: 0 },
+        s: { medianWorkingDays: null, sampleCount: 2 },
+        m: { medianWorkingDays: 3, sampleCount: 12 },
+        l: { medianWorkingDays: null, sampleCount: 0 },
+        xl: { medianWorkingDays: null, sampleCount: 0 },
+      },
+    }),
+  },
+}));
+
 vi.mock('../../../../lib/api/requirementService', () => ({
   requirementService: {
     listRequirements: (...args: any[]) => listRequirementsMock(...args),
@@ -146,6 +163,14 @@ describe('CreateSubtaskModal UI Component', () => {
     expect(screen.getByRole('button', { name: /QA Testing/ })).toBeInTheDocument();
     expect(screen.getByLabelText('Pelaksana')).toBeInTheDocument();
     expect(screen.getByText('Buat Subtask')).toBeInTheDocument();
+
+    // MY-WORK-REPORT P3: the effort hint shows the Workspace median, or that data is too thin.
+    fireEvent.click(screen.getByRole('button', { name: 'Effort M, 3 poin' }));
+    expect(
+      await screen.findByText(/Subtask M biasanya selesai dalam ±3 hari kerja \(median 12 Subtask/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Effort S, 2 poin' }));
+    expect(screen.getByText(/Belum cukup data Subtask S/)).toBeInTheDocument();
     expect(
       await screen.findByRole('checkbox', { name: /REQ-101.*OAuth login requirement/i }),
     ).toBeInTheDocument();
