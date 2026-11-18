@@ -9,22 +9,22 @@ E3 persisten (PostgreSQL) · E4 runtime/UAT.
 
 ## 1. Matriks AC → bukti
 
-| AC     | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI                              | API/PostgreSQL   | UAT/runtime | Status         |
-| ------ | ----- | ---------------- | -------------- | ------------------------------------ | ---------------- | ----------- | -------------- |
-| AC-1.1 | P1    | E3               | E3             | `memberAccessApiIntegration.test.ts` | PostgreSQL lokal | —           | Kandidat lokal |
-| AC-1.2 | P1    | E3               | E3             | `memberAccessApiIntegration.test.ts` | PostgreSQL lokal | —           | Kandidat lokal |
-| AC-2.1 | P2    | E4               | —              | —                                    | —                | —           | Planned        |
-| AC-2.2 | P2    | E3               | —              | —                                    | —                | —           | Planned        |
-| AC-2.3 | P2    | E3               | —              | —                                    | —                | —           | Planned        |
-| AC-3.1 | P3    | E3               | —              | —                                    | —                | —           | Planned        |
-| AC-3.2 | P3    | E3               | —              | —                                    | —                | —           | Planned        |
-| AC-3.3 | P3    | E3               | —              | —                                    | —                | —           | Planned        |
-| AC-4.1 | P4    | E3               | —              | —                                    | —                | —           | Planned        |
-| AC-4.2 | P4    | E3               | —              | —                                    | —                | —           | Planned        |
-| AC-5.1 | P5    | E3               | —              | —                                    | —                | —           | Planned        |
-| AC-5.2 | P5    | E3               | —              | —                                    | —                | —           | Planned        |
-| AC-5.3 | P5    | E4               | —              | —                                    | —                | —           | Planned        |
-| AC-6.1 | P6    | E4               | —              | —                                    | —                | —           | Planned        |
+| AC     | Phase | Bukti dibutuhkan | Bukti tercapai | Unit/UI                                                                                         | API/PostgreSQL                                                                                                        | UAT/runtime                  | Status         |
+| ------ | ----- | ---------------- | -------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------- |
+| AC-1.1 | P1    | E3               | E3             | `memberAccessApiIntegration.test.ts`                                                            | PostgreSQL lokal                                                                                                      | —                            | Kandidat lokal |
+| AC-1.2 | P1    | E3               | E3             | `memberAccessApiIntegration.test.ts`                                                            | PostgreSQL lokal                                                                                                      | —                            | Kandidat lokal |
+| AC-2.1 | P2    | E4               | E3             | `MemberAccessPage.test.tsx` (matriks, sel baca-saja, ubah peran)                                | `memberAccessApiIntegration.test.ts` (sel memakai endpoint per Workspace)                                             | UAT Production setelah merge | Kandidat lokal |
+| AC-2.2 | P2    | E3               | E3             | `MemberAccessPage.test.tsx` (tambah orang ke Workspace lain), `InviteMemberModal` dipakai ulang | `memberAccessApiIntegration.test.ts`                                                                                  | —                            | Kandidat lokal |
+| AC-2.3 | P2    | E3               | E3             | —                                                                                               | `memberAccessApiIntegration.test.ts`: Workspace tidak dikelola 403, peran Owner 400, undangan campuran 403 seluruhnya | —                            | Kandidat lokal |
+| AC-3.1 | P3    | E3               | —              | —                                                                                               | —                                                                                                                     | —                            | Planned        |
+| AC-3.2 | P3    | E3               | —              | —                                                                                               | —                                                                                                                     | —                            | Planned        |
+| AC-3.3 | P3    | E3               | —              | —                                                                                               | —                                                                                                                     | —                            | Planned        |
+| AC-4.1 | P4    | E3               | —              | —                                                                                               | —                                                                                                                     | —                            | Planned        |
+| AC-4.2 | P4    | E3               | —              | —                                                                                               | —                                                                                                                     | —                            | Planned        |
+| AC-5.1 | P5    | E3               | —              | —                                                                                               | —                                                                                                                     | —                            | Planned        |
+| AC-5.2 | P5    | E3               | —              | —                                                                                               | —                                                                                                                     | —                            | Planned        |
+| AC-5.3 | P5    | E4               | —              | —                                                                                               | —                                                                                                                     | —                            | Planned        |
+| AC-6.1 | P6    | E4               | —              | —                                                                                               | —                                                                                                                     | —                            | Planned        |
 
 ## 2. Outcome pemeriksaan
 

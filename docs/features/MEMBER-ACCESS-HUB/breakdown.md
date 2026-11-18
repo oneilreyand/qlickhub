@@ -23,8 +23,8 @@ flowchart LR
 
 | Phase | Tujuan                          | AC             | WRA  | Bergantung         | Status         |
 | ----- | ------------------------------- | -------------- | ---- | ------------------ | -------------- |
-| P1    | API agregat akses               | AC-1.1, AC-1.2 | 6/16 | —                  | Kandidat lokal |
-| P2    | Halaman matriks + undang        | AC-2.1–AC-2.3  | 6/16 | P1                 | Belum mulai    |
+| P1    | API agregat akses               | AC-1.1, AC-1.2 | 6/16 | —                  | Di main (#136) |
+| P2    | Halaman matriks + undang        | AC-2.1–AC-2.3  | 6/16 | P1                 | Kandidat lokal |
 | P3    | Kirim ulang / batalkan undangan | AC-3.1–AC-3.3  | 6/16 | P1                 | Belum mulai    |
 | P4    | Template role + CSV             | AC-4.1, AC-4.2 | 8/16 | P2                 | Belum mulai    |
 | P5    | Akses berbatas waktu            | AC-5.1–AC-5.3  | 8/16 | P1                 | Belum mulai    |

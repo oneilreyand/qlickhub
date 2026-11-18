@@ -4,6 +4,7 @@ const SECTION_LABELS: Array<[RegExp, string]> = [
   [/^\/projects\/[^/]+\/tasks\//, 'Task Hub'],
   [/^\/work\/features\//, 'Task Hub'],
   [/^\/leader-hub/, 'Leader Hub'],
+  [/^\/members/, 'Anggota & Akses'],
   [/^\/workspaces\/settings/, 'Pengaturan Workspace'],
   [/^\/tests/, 'Pengujian'],
   [/^\/components/, 'Galeri Komponen'],

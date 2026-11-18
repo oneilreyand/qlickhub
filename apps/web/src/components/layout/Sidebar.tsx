@@ -8,6 +8,7 @@ import {
   Layers,
   Building2,
   UserRoundCheck,
+  UsersRound,
   CheckSquare,
   BookOpen,
   Crown,
@@ -72,6 +73,11 @@ const navItems: NavItem[] = [
     badge: 'Panduan',
   },
   {
+    name: 'Anggota & Akses',
+    path: '/members',
+    icon: UsersRound,
+  },
+  {
     name: 'Pengaturan Workspace',
     path: '/workspaces/settings',
     icon: Building2,
@@ -116,6 +122,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
   const canAccessSettings = ['owner', 'admin', 'po'].includes(userRole);
   const canAccessUISystem = userRole === 'owner';
   const canAccessLeaderHub = ['owner', 'admin'].includes(userRole);
+  // MEMBER-ACCESS-HUB P2: visible to anyone who is Owner/Admin in at least one Workspace.
+  const canAccessMembers =
+    canAccessLeaderHub ||
+    workspaces.some((workspace) => ['owner', 'admin'].includes(workspace.role));
   const isTaskHub =
     location.pathname === '/work' && new URLSearchParams(location.search).get('tab') === 'tasks';
   // Halaman Feature dan tautan langsung Task adalah bagian dari Task Hub: Sidebar tetap
@@ -138,6 +148,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }
     }
     if (item.path === '/workspaces/settings') {
       return canAccessSettings;
+    }
+    if (item.path === '/members') {
+      return canAccessMembers;
     }
     if (item.path === '/components') {
       return canAccessUISystem;

@@ -190,6 +190,14 @@ describe('Sidebar Role-based Visibility', () => {
     expect(screen.getByRole('link', { name: 'Task Hub' })).not.toHaveClass('bg-[#B1E743]');
   });
 
+  it('shows Anggota & Akses only to Owner/Admin (MEMBER-ACCESS-HUB P2)', () => {
+    const { unmount } = renderSidebar('owner');
+    expect(screen.getByText('Anggota & Akses')).toBeInTheDocument();
+    unmount();
+    renderSidebar('dev');
+    expect(screen.queryByText('Anggota & Akses')).toBeNull();
+  });
+
   it('shows folders only on work pages', () => {
     const { unmount } = renderSidebar('po', '/work?tab=tasks');
     expect(screen.getByText('Folder workspace')).toBeInTheDocument();
