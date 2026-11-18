@@ -11,7 +11,11 @@ import workspaceReducer from '../../store/workspaceSlice';
 import uiReducer from '../../store/uiSlice';
 import type { WorkspaceItem } from '../../lib/api/workspaceService';
 
-const access = vi.hoisted(() => ({ getOverview: vi.fn() }));
+const access = vi.hoisted(() => ({
+  getOverview: vi.fn(),
+  resendInvite: vi.fn(),
+  cancelInvite: vi.fn(),
+}));
 const ws = vi.hoisted(() => ({
   updateMemberRole: vi.fn(),
   addMember: vi.fn(),
@@ -201,5 +205,29 @@ describe('MemberAccessPage (MEMBER-ACCESS-HUB P2)', () => {
     expect(await screen.findByText('Server sibuk')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
     expect(await screen.findByText('Rina Wijaya')).toBeInTheDocument();
+  });
+
+  it('resends and cancels a pending invitation (P3)', async () => {
+    access.resendInvite.mockResolvedValue({ userId: NADIA, workspaceIds: [MOB] });
+    access.cancelInvite.mockResolvedValue({ userId: NADIA, workspaceIds: [MOB] });
+    renderPage();
+    await screen.findByText('Nadia Anggraini');
+    expect(screen.getByText(/^Diundang /)).toBeInTheDocument();
+    // Active people have no invitation actions.
+    expect(
+      screen.queryByRole('button', { name: 'Kirim ulang undangan ke rina@contoh.id' }),
+    ).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Kirim ulang undangan ke nadia@contoh.id' }),
+    );
+    await waitFor(() => expect(access.resendInvite).toHaveBeenCalledWith(NADIA));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Batalkan undangan nadia@contoh.id' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/tautan undangannya tidak berlaku lagi/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Batalkan undangan' }));
+    await waitFor(() => expect(access.cancelInvite).toHaveBeenCalledWith(NADIA));
+    await waitFor(() => expect(access.getOverview).toHaveBeenCalledTimes(2));
   });
 });

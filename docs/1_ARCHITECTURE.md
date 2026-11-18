@@ -352,7 +352,7 @@ Keputusan ini dijelaskan dalam
 ### Anggota & Akses Lintas Workspace
 
 - Ringkasan akses lintas Workspace (`GET /v1/me/member-access`) hanya memuat Workspace tempat aktor menjadi Owner atau Admin. Keanggotaan seseorang di Workspace lain tidak pernah ditampilkan; aktor yang tidak mengelola Workspace mana pun ditolak (`AUTH-014`).
-- Setiap perubahan akses tetap memakai endpoint dan aturan per Workspace yang sudah ada; tidak ada entitas Organization atau peran admin organisasi. Keputusan tercatat di [ADR-046](adr/ADR-046-MEMBER-ACCESS-HUB-AND-TIME-BOUND-MEMBERSHIP.md).
+- Setiap perubahan akses tetap memakai endpoint dan aturan per Workspace yang sudah ada; tidak ada entitas Organization atau peran admin organisasi. Pengecualiannya kirim ulang dan batalkan undangan yang belum aktif (`POST /v1/me/member-access/:userId/resend-invite`, `POST /v1/me/member-access/:userId/cancel-invite`): keduanya hanya menyentuh Workspace aktif (tidak diarsipkan) yang dikelola aktor tempat orang itu menjadi anggota, menolak akun yang sudah aktif (409), dan menjawab 404 untuk orang di luar lingkup itu. Kirim ulang mengganti token sehingga tautan lama tidak berlaku; batalkan tercatat sebagai `member_removed` dengan alasan `invitation_canceled` dan mematikan tautan bila orang itu tidak lagi punya keanggotaan. Keputusan tercatat di [ADR-046](adr/ADR-046-MEMBER-ACCESS-HUB-AND-TIME-BOUND-MEMBERSHIP.md).
 
 ### Relasi Task Lintas Workspace
 

@@ -4,12 +4,14 @@ import type {
   AssignableWorkspaceRole,
   DeveloperSpecialty,
   MemberAccessOverview,
+  MemberAccessPerson,
   WorkspaceMemberAssignment,
 } from '@qlick/contracts';
 import { Alert } from '../components/ui/atoms/Alert';
 import { Button } from '../components/ui/atoms/Button';
 import { Skeleton } from '../components/ui/atoms/Skeleton';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
+import { Modal } from '../components/ui/molecules/Modal';
 import { InviteMemberModal } from '../components/ui/organisms/InviteMemberModal';
 import {
   MemberAccessMatrix,
@@ -43,6 +45,8 @@ export const MemberAccessPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
+  const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<MemberAccessPerson | null>(null);
 
   const load = useCallback(async () => {
     setState({ status: 'loading' });
@@ -119,6 +123,31 @@ export const MemberAccessPage: React.FC = () => {
       () => workspaceService.removeMember(target.workspaceId, target.person.userId),
       `${target.person.name} dikeluarkan dari ${targetWorkspace.name}.`,
     );
+  };
+
+  const invitationAction = async (person: MemberAccessPerson, kind: 'resend' | 'cancel') => {
+    setBusyUserId(person.userId);
+    try {
+      if (kind === 'resend') {
+        await memberAccessService.resendInvite(person.userId);
+        notify(
+          `Undangan baru dikirim ke ${person.email}. Tautan lama tidak berlaku lagi.`,
+          'success',
+        );
+      } else {
+        const result = await memberAccessService.cancelInvite(person.userId);
+        notify(
+          `Undangan ${person.email} dibatalkan di ${result.workspaceIds.length} workspace.`,
+          'success',
+        );
+        setCancelTarget(null);
+        await load();
+      }
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Aksi undangan gagal.', 'error');
+    } finally {
+      setBusyUserId(null);
+    }
   };
 
   const invite = async (email: string, assignments: WorkspaceMemberAssignment[]) => {
@@ -201,6 +230,9 @@ export const MemberAccessPage: React.FC = () => {
           onFilterChange={setFilter}
           onEditCell={setTarget}
           currentUserId={currentUserId}
+          onResendInvite={(person) => void invitationAction(person, 'resend')}
+          onCancelInvite={setCancelTarget}
+          busyUserId={busyUserId}
         />
       )}
 
@@ -221,6 +253,32 @@ export const MemberAccessPage: React.FC = () => {
         onSave={save}
         onRemove={remove}
       />
+
+      <Modal
+        isOpen={Boolean(cancelTarget)}
+        onClose={() => setCancelTarget(null)}
+        title="Batalkan undangan?"
+        description={
+          cancelTarget
+            ? `${cancelTarget.email} dikeluarkan dari semua workspace yang kamu kelola dan tautan undangannya tidak berlaku lagi.`
+            : undefined
+        }
+        size="sm"
+      >
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setCancelTarget(null)}>
+            Kembali
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            isLoading={busyUserId !== null}
+            onClick={() => cancelTarget && void invitationAction(cancelTarget, 'cancel')}
+          >
+            Batalkan undangan
+          </Button>
+        </div>
+      </Modal>
 
       {manageable.length > 0 && (
         <InviteMemberModal

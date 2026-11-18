@@ -5,6 +5,7 @@ import { MemberAccessOverviewSchema } from '@qlick/contracts';
 import { createApp } from '../../../app.js';
 import { sequelize } from '../../../db/sequelize.js';
 import { UserModel, WorkspaceMemberModel, WorkspaceModel } from '../../../db/models/index.js';
+import { WorkspaceMembershipActivityModel } from '../../../db/models/workspaceMembershipActivity.js';
 import { accessTokenCookieName, signToken } from '../../auth/jwt.js';
 import { sessionManager } from '../../auth/sessionManager.js';
 
@@ -173,5 +174,44 @@ describe('Member access overview HTTP / PostgreSQL Integration', () => {
       dev.memberships.find((m) => m.workspaceId === ws.alpha.id)!.specialties.sort(),
       ['frontend', 'mobile'],
     );
+  });
+
+  test('AC-3.1–AC-3.3: resend replaces the invitation token; cancel removes pending access', async () => {
+    const post = (actor: string, userId: string, action: string) =>
+      fetch(`${baseUrl}/me/member-access/${userId}/${action}`, {
+        method: 'POST',
+        headers: { Cookie: cookies[actor] },
+      });
+    const invitedBefore = await UserModel.findByPk(users.invited.id);
+    const resent = await post('lead', users.invited.id, 'resend-invite');
+    assert.strictEqual(resent.status, 200, await resent.clone().text());
+    const invitedAfter = await UserModel.findByPk(users.invited.id);
+    assert.ok(invitedAfter!.passwordResetToken);
+    assert.notStrictEqual(invitedAfter!.passwordResetToken, invitedBefore!.passwordResetToken);
+
+    // Active accounts cannot be re-invited or cancelled; strangers and non-managers are refused.
+    assert.strictEqual((await post('lead', users.dev.id, 'resend-invite')).status, 409);
+    assert.strictEqual((await post('lead', users.stranger.id, 'cancel-invite')).status, 404);
+    assert.strictEqual((await post('dev', users.invited.id, 'cancel-invite')).status, 403);
+    assert.strictEqual((await post('lead', 'nope', 'cancel-invite')).status, 404);
+
+    const cancelled = await post('lead', users.invited.id, 'cancel-invite');
+    assert.strictEqual(cancelled.status, 200);
+    const body = (await cancelled.json()) as { data: { workspaceIds: string[] } };
+    assert.deepStrictEqual(body.data.workspaceIds, [ws.alpha.id]);
+    assert.strictEqual(
+      await WorkspaceMemberModel.count({ where: { userId: users.invited.id } }),
+      0,
+    );
+    const activity = await WorkspaceMembershipActivityModel.findOne({
+      where: { workspaceId: ws.alpha.id, targetUserId: users.invited.id, action: 'member_removed' },
+    });
+    assert.strictEqual((activity?.metadata as { reason?: string }).reason, 'invitation_canceled');
+    const user = await UserModel.findByPk(users.invited.id);
+    assert.strictEqual(user!.passwordResetToken, null, 'the link stops working');
+    const { data } = (await (await overview('lead')).json()) as {
+      data: { people: { userId: string }[] };
+    };
+    assert.ok(!data.people.some((p) => p.userId === users.invited.id));
   });
 });

@@ -46,7 +46,7 @@ describe('Workspace owner integrity', () => {
       (err: Error) => {
         assert.ok(err.message.includes('workspace owner role cannot be changed'));
         return true;
-      }
+      },
     );
   });
 
@@ -60,7 +60,7 @@ describe('Workspace owner integrity', () => {
       (err: Error) => {
         assert.ok(err.message.includes('Assigning the owner role requires an ownership transfer'));
         return true;
-      }
+      },
     );
   });
 });
