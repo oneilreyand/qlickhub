@@ -5,7 +5,8 @@ import type { CreateTaskLinkInput, TaskLink, UpdateTaskLinkInput } from '@qlick/
 export class TaskLinkNotFoundError extends Error {
   readonly status = 404;
   constructor(message: string = 'Tautan referensi tidak ditemukan.') {
-    super(message);
+    // The NOT_FOUND prefix makes sendProblemDetails answer 404 instead of 500.
+    super(`NOT_FOUND: ${message}`);
     this.name = 'TaskLinkNotFoundError';
   }
 }
@@ -13,7 +14,7 @@ export class TaskLinkNotFoundError extends Error {
 export class TaskNotFoundError extends Error {
   readonly status = 404;
   constructor(message: string = 'Task tidak ditemukan pada workspace ini.') {
-    super(message);
+    super(`NOT_FOUND: ${message}`);
     this.name = 'TaskNotFoundError';
   }
 }

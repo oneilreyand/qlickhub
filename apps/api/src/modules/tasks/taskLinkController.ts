@@ -5,14 +5,23 @@ import {
   UpdateTaskLinkSchema,
   ReorderTaskLinksSchema,
 } from '@qlick/contracts';
-import { taskLinkService } from './taskLinkService.js';
+import { TaskLinkNotFoundError, TaskNotFoundError, taskLinkService } from './taskLinkService.js';
 import { assertCanReadTaskLinks, assertCanManageTaskLinks } from '../../policies/taskLinkPolicy.js';
 import { sendProblemDetails } from '../../http/problemDetails.js';
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Malformed ids are unknown tasks/links (404), not database errors (500). */
+function assertIds(taskId: string, linkId?: string) {
+  if (!UUID.test(taskId)) throw new TaskNotFoundError();
+  if (linkId !== undefined && !UUID.test(linkId)) throw new TaskLinkNotFoundError();
+}
 
 export const taskLinkController = {
   async listTaskLinks(req: WorkspaceRequest, res: Response, _next: NextFunction) {
     try {
       const { workspaceId, taskId } = req.params;
+      assertIds(taskId);
       const role = req.workspaceMembership?.role;
       assertCanReadTaskLinks(role);
 
@@ -26,6 +35,7 @@ export const taskLinkController = {
   async createTaskLink(req: WorkspaceRequest, res: Response, _next: NextFunction) {
     try {
       const { workspaceId, taskId } = req.params;
+      assertIds(taskId);
       const role = req.workspaceMembership?.role;
       assertCanManageTaskLinks(role);
 
@@ -47,6 +57,7 @@ export const taskLinkController = {
   async updateTaskLink(req: WorkspaceRequest, res: Response, _next: NextFunction) {
     try {
       const { workspaceId, taskId, linkId } = req.params;
+      assertIds(taskId, linkId);
       const role = req.workspaceMembership?.role;
       assertCanManageTaskLinks(role);
 
@@ -62,6 +73,7 @@ export const taskLinkController = {
   async deleteTaskLink(req: WorkspaceRequest, res: Response, _next: NextFunction) {
     try {
       const { workspaceId, taskId, linkId } = req.params;
+      assertIds(taskId, linkId);
       const role = req.workspaceMembership?.role;
       assertCanManageTaskLinks(role);
 
@@ -75,6 +87,7 @@ export const taskLinkController = {
   async reorderTaskLinks(req: WorkspaceRequest, res: Response, _next: NextFunction) {
     try {
       const { workspaceId, taskId } = req.params;
+      assertIds(taskId);
       const role = req.workspaceMembership?.role;
       assertCanManageTaskLinks(role);
 

@@ -456,4 +456,22 @@ describe('Task Links HTTP / PostgreSQL Integration (F2 - FEATURE-REFERENCES-MEDI
     // Outsider is not a member of workspace -> 403 Forbidden
     assert.strictEqual(outsiderRes.status, 403);
   });
+
+  test('unknown or malformed task/link ids answer 404, never 500', async () => {
+    const base = `${baseUrl}/workspaces/${workspace.id}/tasks`;
+    const missing = '00000000-0000-4000-8000-000000000000';
+    for (const path of [`${missing}/links`, 'not-a-uuid/links']) {
+      const res = await fetch(`${base}/${path}`, { headers: { Cookie: ownerCookie } });
+      assert.strictEqual(res.status, 404, path);
+      const body = (await res.json()) as { code: string };
+      assert.strictEqual(body.code, 'NOT_FOUND');
+    }
+    for (const linkId of [missing, 'not-a-uuid']) {
+      const res = await fetch(`${base}/${featureTask.id}/links/${linkId}`, {
+        method: 'DELETE',
+        headers: { Cookie: poCookie },
+      });
+      assert.strictEqual(res.status, 404, linkId);
+    }
+  });
 });
