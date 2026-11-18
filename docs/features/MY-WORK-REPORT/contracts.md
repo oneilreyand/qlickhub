@@ -11,7 +11,7 @@ Membaca `tasks`, `task_activities`, `task_blockers`, kalender dan kapasitas (WOR
 ## API and executable contract
 
 Contract baru `myWorkReport.ts` dan `taskRelation.ts`. Endpoint: `GET /v1/me/work-report?from&to&workspaceId`
-(+ `punctuality`, `format=csv`; periode maks 92 hari; P1/P2, `FLOW-013`); P3: tiap item membawa `timeFairness`, dan `GET /v1/workspaces/:workspaceId/effort-baseline` (anggota aktif) mengembalikan median hari kerja per effort, `GET/POST /v1/workspaces/:workspaceId/tasks/:taskId/relations`, `DELETE …/relations/:relationId`.
+(+ `punctuality`, `format=csv`; periode maks 92 hari; P1/P2, `FLOW-013`); P3: tiap item membawa `timeFairness`, dan `GET /v1/workspaces/:workspaceId/effort-baseline` (anggota aktif) mengembalikan median hari kerja per effort, `GET /v1/workspaces/:workspaceId/tasks/:taskId/relations`, `POST /v1/workspaces/:workspaceId/tasks/:taskId/relations`, `DELETE /v1/workspaces/:workspaceId/tasks/:taskId/relations/:relationId` (P4, `AUTH-016`; Laporan Saya membawa `crossWorkspace`).
 View-model UI di `organisms/myWorkReport/types.ts` dipetakan dari contract, bukan sebaliknya.
 
 ## Boundary notes

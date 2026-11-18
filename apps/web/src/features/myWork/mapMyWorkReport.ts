@@ -1,6 +1,14 @@
-import type { MyWorkItem, MyWorkReport, WorkRiskReason } from '@qlick/contracts';
+import type {
+  MyCrossWorkspaceLink,
+  MyWorkItem,
+  MyWorkReport,
+  RelatedTask,
+  WorkRiskReason,
+} from '@qlick/contracts';
 import type {
   AttentionItem,
+  CrossWorkspaceLink,
+  WorkRef,
   MyWorkReportData,
   WorkEffort,
   WorkItemRow,
@@ -73,6 +81,63 @@ function attentionReason(item: MyWorkItem): string {
   return item.reasons.map((reason) => REASON_TEXT[reason]).join(' · ');
 }
 
+/** Redacted tasks show neither title nor Workspace (ADR-047, AUTH-011). */
+function refOf(task: RelatedTask): WorkRef {
+  return task.isRedacted
+    ? { title: 'Kerjaan yang tidak bisa kamu buka', workspaceName: 'workspace lain' }
+    : { title: task.title, workspaceName: task.workspaceName };
+}
+
+function rangeOf(from: string, to: string) {
+  return from === to ? formatDayMonth(from) : `${formatDayMonth(from)} – ${formatDayMonth(to)}`;
+}
+
+/** MY-WORK-REPORT P4: overlaps across Workspaces. */
+export function mapCrossWorkspace(report: MyWorkReport): CrossWorkspaceLink[] {
+  const itemById = new Map(report.items.map((item) => [item.taskId, item]));
+  return report.crossWorkspace.map((link: MyCrossWorkspaceLink): CrossWorkspaceLink => {
+    if (link.kind === 'schedule_conflict') {
+      return {
+        kind: 'schedule_conflict',
+        id: link.id,
+        dateLabel: rangeOf(link.from, link.to),
+        peakPercent: link.peakPercent,
+        items: link.taskIds.map((taskId) => {
+          const item = itemById.get(taskId);
+          return item
+            ? {
+                title: item.title,
+                workspaceName: item.workspaceName,
+                effort: effortOf(item.effort),
+              }
+            : { title: 'Kerjaan di luar daftar periode ini', workspaceName: '—', effort: null };
+        }),
+      };
+    }
+    if (link.kind === 'dependency') {
+      const blockedStart = link.blocked.startDate;
+      const blockerDue = link.blocker.dueDate;
+      return {
+        kind: 'dependency',
+        id: link.id,
+        blocker: refOf(link.blocker),
+        blocked: refOf(link.blocked),
+        note:
+          link.startsBeforeDependencyDone && blockedStart && blockerDue
+            ? `Dijadwalkan mulai ${formatDayMonth(blockedStart)}, sebelum dependency selesai (${formatDayMonth(blockerDue)}).`
+            : 'Urutan jadwal aman.',
+      };
+    }
+    return {
+      kind: 'related',
+      id: link.id,
+      from: refOf(link.from),
+      to: refOf(link.to),
+      note: link.type === 'duplicates' ? 'Ditandai sebagai duplikat.' : 'Ditandai saling terkait.',
+    };
+  });
+}
+
 export function mapMyWorkReport(report: MyWorkReport): MyWorkReportData {
   const titleOf = new Map(report.items.map((item) => [item.taskId, item.title]));
   const overDays = report.load.days.filter((day) => day.totalPercent > 100);
@@ -134,7 +199,7 @@ export function mapMyWorkReport(report: MyWorkReport): MyWorkReportData {
         : undefined,
     },
     attention,
-    crossWorkspace: [],
+    crossWorkspace: mapCrossWorkspace(report),
     items,
   };
 }

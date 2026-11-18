@@ -1,6 +1,6 @@
 const SECTION_LABELS: Array<[RegExp, string]> = [
   [/^\/my-tasks|^\/requirements/, 'Tugas Saya'],
-  [/^\/reports/, 'Laporan'],
+  [/^\/my-report/, 'Laporan Saya'],
   [/^\/projects\/[^/]+\/tasks\//, 'Task Hub'],
   [/^\/work\/features\//, 'Task Hub'],
   [/^\/leader-hub/, 'Leader Hub'],

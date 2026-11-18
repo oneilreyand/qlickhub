@@ -720,7 +720,7 @@ export const OverviewStoreDashboard: React.FC = () => {
         {/* Card 4: QA & Traceability (Visible for QA, Admin, Owner) */}
         {(isQA || isOwnerOrAdmin) && (
           <div
-            onClick={() => navigate('/reports')}
+            onClick={() => navigate('/my-tasks')}
             className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-xs hover:border-amber-300 dark:border-stone-800 dark:bg-[#1C1A19] cursor-pointer transition-all flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">

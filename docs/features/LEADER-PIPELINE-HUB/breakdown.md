@@ -27,7 +27,7 @@ flowchart LR
 | Phase | Tujuan                              | AC             | WRA  | Bergantung                     | Status                  |
 | ----- | ----------------------------------- | -------------- | ---- | ------------------------------ | ----------------------- |
 | P1    | Mesin kesehatan + tahap             | AC-1.1–AC-1.3  | 8/16 | WF P5                          | Kandidat lokal          |
-| P2    | Tab Ringkasan                       | AC-2.1, AC-2.2 | 6/16 | P1; koordinasi LEADER-SDLC-HUB | Belum mulai             |
+| P2    | Tab Ringkasan                       | AC-2.1, AC-2.2 | 6/16 | P1; koordinasi LEADER-SDLC-HUB | Kandidat lokal          |
 | P3    | Beban tim berbasis poin             | AC-3.1         | 7/16 | MWR P2                         | Kandidat lokal          |
 | P4    | Papan hambatan + Ping PIC           | AC-4.1, AC-4.2 | 6/16 | P1                             | Kandidat lokal (AC-4.1) |
 | P5    | Realtime                            | AC-5.1         | 6/16 | P2                             | Belum mulai             |

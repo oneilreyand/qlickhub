@@ -21,6 +21,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { updateTask } from '../store/taskSlice';
 import { TaskBlockersSection } from '../features/tasks/TaskBlockersSection';
+import { TaskRelationsSection } from '../features/tasks/TaskRelationsSection';
 
 /**
  * Halaman kerja subtask (ADR-035): menggantikan drawer subtask lewat tautan langsung.
@@ -284,6 +285,9 @@ export const SubtaskWorkPage: React.FC = () => {
   const blockers = activeWorkspaceId ? (
     <div className="mx-auto mt-4 max-w-4xl">
       <TaskBlockersSection workspaceId={activeWorkspaceId} taskId={task.id} />
+      <div className="mt-4">
+        <TaskRelationsSection workspaceId={activeWorkspaceId} taskId={task.id} />
+      </div>
     </div>
   ) : null;
 

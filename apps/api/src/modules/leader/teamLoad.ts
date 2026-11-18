@@ -63,8 +63,10 @@ export async function getLeaderTeamLoad(
   workspaceIds: string[],
   timeZone: string,
   now: Date,
+  /** Defaults to the current week; the timeline passes its own period. */
+  period?: { from: string; to: string },
 ): Promise<LeaderTeamLoad> {
-  const week = currentWeek(timeZone, now);
+  const week = period ?? currentWeek(timeZone, now);
   const empty: LeaderTeamLoad = { weekFrom: week.from, weekTo: week.to, areas: [], members: [] };
   if (!workspaceIds.length) return empty;
 

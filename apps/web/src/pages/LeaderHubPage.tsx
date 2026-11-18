@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
+  Activity,
   Calendar,
   ShieldAlert,
   FileBarChart2,
@@ -11,15 +12,20 @@ import {
 } from 'lucide-react';
 import type { LeaderWorkspaceSummaryItem } from '@qlick/contracts';
 import { leaderService } from '../lib/api/leaderService';
-import { LeaderTimelineTab, LeaderQualityTab, LeaderDigestTab } from '../features/leader';
+import {
+  LeaderTimelineTab,
+  LeaderQualityTab,
+  LeaderDigestTab,
+  LeaderSummaryTab,
+} from '../features/leader';
 import { Card } from '../components/ui/atoms/Card';
 import { Badge } from '../components/ui/atoms/Badge';
 
-type LeaderTab = 'timeline' | 'quality' | 'digest';
+type LeaderTab = 'summary' | 'timeline' | 'quality' | 'digest';
 
 export const LeaderHubPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = (searchParams.get('tab') as LeaderTab) || 'timeline';
+  const currentTab = (searchParams.get('tab') as LeaderTab) || 'summary';
 
   const [workspaces, setWorkspaces] = useState<LeaderWorkspaceSummaryItem[]>([]);
   const [selectedWorkspaceIds, setSelectedWorkspaceIds] = useState<string[]>([]);
@@ -177,10 +183,23 @@ export const LeaderHubPage: React.FC = () => {
       </div>
 
       {/* Main Tabs Navigation Bar */}
-      <div className="flex items-center gap-2 border-b border-stone-200/80 dark:border-stone-800/80 pb-3">
+      <div className="flex items-center gap-2 overflow-x-auto border-b border-stone-200/80 dark:border-stone-800/80 pb-3">
+        <button
+          onClick={() => handleTabChange('summary')}
+          aria-pressed={currentTab === 'summary'}
+          className={`flex shrink-0 items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            currentTab === 'summary'
+              ? 'bg-[#B1E743] text-[#141413] shadow-xs'
+              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-white dark:hover:bg-stone-800'
+          }`}
+        >
+          <Activity className="h-4 w-4" />
+          <span>Ringkasan</span>
+        </button>
+
         <button
           onClick={() => handleTabChange('timeline')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
             currentTab === 'timeline'
               ? 'bg-[#B1E743] text-[#141413] shadow-xs'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-white dark:hover:bg-stone-800'
@@ -192,7 +211,7 @@ export const LeaderHubPage: React.FC = () => {
 
         <button
           onClick={() => handleTabChange('quality')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
             currentTab === 'quality'
               ? 'bg-[#B1E743] text-[#141413] shadow-xs'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-white dark:hover:bg-stone-800'
@@ -204,7 +223,7 @@ export const LeaderHubPage: React.FC = () => {
 
         <button
           onClick={() => handleTabChange('digest')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex shrink-0 items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
             currentTab === 'digest'
               ? 'bg-[#B1E743] text-[#141413] shadow-xs'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-white dark:hover:bg-stone-800'
@@ -216,6 +235,8 @@ export const LeaderHubPage: React.FC = () => {
       </div>
 
       {/* Tab Panels */}
+      {currentTab === 'summary' && <LeaderSummaryTab workspaceIds={effectiveWorkspaceIds} />}
+
       {currentTab === 'timeline' && (
         <LeaderTimelineTab
           workspaceIds={effectiveWorkspaceIds}

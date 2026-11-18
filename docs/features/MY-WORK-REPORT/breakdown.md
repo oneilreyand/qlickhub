@@ -22,13 +22,13 @@ flowchart LR
   P1 --> P5["P5 Relokasi Timeline Tim"]
 ```
 
-| Phase | Tujuan                                  | AC             | WRA  | Bergantung                                        | Status         |
-| ----- | --------------------------------------- | -------------- | ---- | ------------------------------------------------- | -------------- |
-| P1    | API + halaman 6 kategori + daftar + CSV | AC-1.1–AC-1.5  | 8/16 | WF P2 (kalender), WF P5 (hambatan untuk Berisiko) | Kandidat lokal |
-| P2    | Beban harian lintas Workspace           | AC-2.1, AC-2.2 | 7/16 | P1, WF P3, WF P4                                  | Kandidat lokal |
-| P3    | Kewajaran waktu                         | AC-3.1, AC-3.2 | 6/16 | P1, WF P1, WF P3                                  | Kandidat lokal |
-| P4    | Relasi antar task + irisan + redaksi    | AC-4.1–AC-4.3  | 8/16 | P1                                                | Belum mulai    |
-| P5    | Relokasi Timeline Tim                   | AC-5.1         | 4/16 | P1; koordinasi UI-WORKSPACE-REFRESH               | Belum mulai    |
+| Phase | Tujuan                                  | AC             | WRA  | Bergantung                                        | Status                            |
+| ----- | --------------------------------------- | -------------- | ---- | ------------------------------------------------- | --------------------------------- |
+| P1    | API + halaman 6 kategori + daftar + CSV | AC-1.1–AC-1.5  | 8/16 | WF P2 (kalender), WF P5 (hambatan untuk Berisiko) | Kandidat lokal                    |
+| P2    | Beban harian lintas Workspace           | AC-2.1, AC-2.2 | 7/16 | P1, WF P3, WF P4                                  | Kandidat lokal                    |
+| P3    | Kewajaran waktu                         | AC-3.1, AC-3.2 | 6/16 | P1, WF P1, WF P3                                  | Kandidat lokal                    |
+| P4    | Relasi antar task + irisan + redaksi    | AC-4.1–AC-4.3  | 8/16 | P1                                                | Kandidat lokal                    |
+| P5    | Relokasi Timeline Tim                   | AC-5.1         | 4/16 | P1; koordinasi UI-WORKSPACE-REFRESH               | Diganti: Laporan dihapus (LPH P2) |
 
 ## 2. Task per phase
 

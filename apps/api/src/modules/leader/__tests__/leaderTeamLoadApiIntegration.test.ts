@@ -182,4 +182,35 @@ describe('Leader team load HTTP / PostgreSQL Integration (LEADER-PIPELINE-HUB P3
       ),
     );
   });
+
+  test('timeline: "overloaded" follows points vs capacity, not "≥3 active Subtasks" (P2)', async () => {
+    // qa gets 3 more tiny Subtasks on separate days: 3 tasks, still far below capacity.
+    const featureA = await TaskModel.findOne({ where: { title: `Feature A ${stamp}` } });
+    for (const offset of [0, 1, 2]) {
+      await TaskModel.create({
+        workspaceId: wsA.id,
+        parentTaskId: featureA!.id,
+        deliveryArea: 'qa',
+        title: `Cek kecil ${offset} ${stamp}`,
+        status: 'todo',
+        priority: 'low',
+        reporterId: users.owner.id,
+        assigneeId: users.qa.id,
+        startDate: addDays(week.from, offset + 7),
+        dueDate: addDays(week.from, offset + 7),
+        effort: 'xs',
+      });
+    }
+    const response = await fetch(
+      `${baseUrl}/leader/timeline?workspaceIds=${wsA.id}&startDate=${addDays(week.from, 7)}&endDate=${addDays(week.from, 13)}`,
+      { headers: { Cookie: cookies.owner } },
+    );
+    assert.strictEqual(response.status, 200);
+    const body = (await response.json()) as {
+      members: { id: string; capacityStatus: string; activeSubtaskCount: number }[];
+    };
+    const qa = body.members.find((member) => member.id === users.qa.id)!;
+    assert.ok(qa.activeSubtaskCount >= 3);
+    assert.strictEqual(qa.capacityStatus, 'balanced');
+  });
 });

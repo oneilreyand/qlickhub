@@ -14,6 +14,11 @@ vi.mock('../../lib/api/leaderService', () => ({
 }));
 
 vi.mock('../../features/leader', () => ({
+  LeaderSummaryTab: (props: any) => (
+    <div data-testid="mock-leader-summary">
+      Summary View - Workspaces: {props.workspaceIds ? props.workspaceIds.join(',') : 'all'}
+    </div>
+  ),
   LeaderTimelineTab: (props: any) => (
     <div data-testid="mock-leader-timeline">
       Timeline View - Workspaces: {props.workspaceIds ? props.workspaceIds.join(',') : 'all'}
@@ -91,7 +96,9 @@ describe('LeaderHubPage Component', () => {
     expect(screen.getByText('Workspace Alpha')).toBeInTheDocument();
     expect(screen.getByText('Workspace Beta')).toBeInTheDocument();
 
-    // Default tab is timeline
+    // Default tab is Ringkasan (LEADER-PIPELINE-HUB P2)
+    expect(screen.getByTestId('mock-leader-summary')).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/Timeline & Beban Kerja/i));
     expect(screen.getByTestId('mock-leader-timeline')).toBeInTheDocument();
 
     // Click on Quality tab
@@ -135,13 +142,13 @@ describe('LeaderHubPage Component', () => {
     fireEvent.click(wsAlphaPill);
 
     expect(
-      screen.getByText('Timeline View - Workspaces: 11111111-1111-4111-a111-111111111111'),
+      screen.getByText('Summary View - Workspaces: 11111111-1111-4111-a111-111111111111'),
     ).toBeInTheDocument();
 
     // Click Semua Workspace to reset
     const allWsButton = screen.getByText('Semua Workspace');
     fireEvent.click(allWsButton);
 
-    expect(screen.getByText('Timeline View - Workspaces: all')).toBeInTheDocument();
+    expect(screen.getByText('Summary View - Workspaces: all')).toBeInTheDocument();
   });
 });

@@ -8,6 +8,8 @@ import {
   type LeaderQualityMetricsResponse,
   type LeaderReportDigestResponse,
   type LeaderTimelineQuery,
+  type LeaderPipelineSummary,
+  type TaskBlockerPingResult,
 } from '@qlick/contracts';
 import { apiClient } from './apiClient';
 
@@ -26,6 +28,26 @@ export interface LeaderDigestQuery {
 }
 
 export const leaderService = {
+  /** LEADER-PIPELINE-HUB P1/P3/P4: pipeline, health, open blockers and team load. */
+  async getPipeline(workspaceIds?: string[]): Promise<LeaderPipelineSummary> {
+    const params: Record<string, string> = {};
+    if (workspaceIds?.length) params.workspaceIds = workspaceIds.join(',');
+    const res = await apiClient<{ data: LeaderPipelineSummary }>('/leader/pipeline', { params });
+    return res.data;
+  },
+
+  async pingBlockerPic(
+    workspaceId: string,
+    taskId: string,
+    blockerId: string,
+  ): Promise<TaskBlockerPingResult> {
+    const res = await apiClient<{ data: TaskBlockerPingResult }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/blockers/${blockerId}/ping`,
+      { method: 'POST' },
+    );
+    return res.data;
+  },
+
   async getWorkspaces(): Promise<LeaderWorkspacesResponse> {
     const response = await apiClient<unknown>('/leader/workspaces', {
       method: 'GET',

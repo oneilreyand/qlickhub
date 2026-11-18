@@ -18,6 +18,8 @@ import {
   TaskAssignmentMutation,
   ReassignTaskInput,
   TaskBlocker,
+  TaskRelation,
+  CreateTaskRelationInput,
   CreateTaskBlockerInput,
   ResolveTaskBlockerInput,
 } from '@qlick/contracts';
@@ -303,6 +305,32 @@ export const taskService = {
   getAttachmentDownloadUrl(workspaceId: string, taskId: string, attachmentId: string): string {
     const base = (import.meta as any).env?.VITE_API_URL || '/v1';
     return `${base}/workspaces/${workspaceId}/tasks/${taskId}/attachments/${attachmentId}/download`;
+  },
+
+  /** MY-WORK-REPORT P4 (ADR-047): relations of a task, possibly across Workspaces. */
+  async listTaskRelations(workspaceId: string, taskId: string): Promise<TaskRelation[]> {
+    const res = await apiClient<{ data: TaskRelation[] }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/relations`,
+    );
+    return res.data;
+  },
+
+  async createTaskRelation(
+    workspaceId: string,
+    taskId: string,
+    input: CreateTaskRelationInput,
+  ): Promise<TaskRelation> {
+    const res = await apiClient<{ data: TaskRelation }>(
+      `/workspaces/${workspaceId}/tasks/${taskId}/relations`,
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return res.data;
+  },
+
+  async deleteTaskRelation(workspaceId: string, taskId: string, relationId: string) {
+    await apiClient(`/workspaces/${workspaceId}/tasks/${taskId}/relations/${relationId}`, {
+      method: 'DELETE',
+    });
   },
 
   async listTaskBlockers(workspaceId: string, taskId: string): Promise<TaskBlocker[]> {

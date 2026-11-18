@@ -27,7 +27,9 @@ export type SdlcStageState =
   | { state: 'done' }
   | { state: 'active'; days: number }
   | { state: 'held'; days: number }
-  | { state: 'pending' };
+  | { state: 'pending' }
+  /** Not recorded by Qlick Hub yet; never shown as done (DATA-005). */
+  | { state: 'untracked' };
 
 export interface LeaderPipelineRow {
   featureId: string;
@@ -50,7 +52,8 @@ export interface LeaderSummaryStats {
   overCapacityMembers: number;
 }
 
-export type LeaderBlockerCategory = 'external' | 'clarification' | 'environment' | 'dependency';
+/** Same categories as the blocker contract (WORK-FOUNDATION P5). */
+export type LeaderBlockerCategory = import('@qlick/contracts').TaskBlockerCategory;
 
 export interface LeaderOpenBlocker {
   id: string;

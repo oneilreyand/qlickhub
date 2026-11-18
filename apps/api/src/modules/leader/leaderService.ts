@@ -1,4 +1,5 @@
 import { Op, WhereOptions } from 'sequelize';
+import { getLeaderTeamLoad } from './teamLoad.js';
 import type {
   LeaderTimelineQuery,
   LeaderTimelineResponse,
@@ -185,6 +186,13 @@ export class LeaderService {
     let totalConflicts = 0;
 
     const timelineMembers: LeaderTimelineMember[] = [];
+    const periodLoad = await getLeaderTeamLoad(targetWorkspaceIds, 'Asia/Jakarta', new Date(), {
+      from: startDateRange,
+      to: endDateRange,
+    });
+    const loadPercent = new Map(
+      periodLoad.members.map((member) => [member.userId, member.percent]),
+    );
 
     const selectedMembers = Array.from(uniqueMemberMap.entries()).filter(
       ([, info]) =>
@@ -272,10 +280,12 @@ export class LeaderService {
         };
       });
 
+      // LEADER-PIPELINE-HUB P2/P3 (ADR-044): "overloaded" = effort points above capacity in the
+      // period, or a schedule conflict; the old "≥3 active Subtasks" rule is gone.
       let capacityStatus: 'underutilized' | 'balanced' | 'overloaded' = 'balanced';
       if (taskItems.length === 0) {
         capacityStatus = 'underutilized';
-      } else if (taskItems.length >= 3 || memberConflicts > 0) {
+      } else if ((loadPercent.get(userId) ?? 0) > 100 || memberConflicts > 0) {
         capacityStatus = 'overloaded';
       }
 

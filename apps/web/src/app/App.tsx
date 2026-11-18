@@ -37,10 +37,6 @@ const MyTasksPage = lazy(async () => ({
   default: (await loadRouteModuleWithRecovery('my-tasks', () => import('../pages/MyTasksPage')))
     .MyTasksPage,
 }));
-const ReportPage = lazy(async () => ({
-  default: (await loadRouteModuleWithRecovery('reports', () => import('../pages/ReportPage')))
-    .ReportPage,
-}));
 const MyWorkReportPage = lazy(async () => ({
   default: (
     await loadRouteModuleWithRecovery('my-report', () => import('../pages/MyWorkReportPage'))
@@ -242,13 +238,9 @@ export const App: React.FC = () => {
           <Route
             path="/reports"
             element={
-              <ProtectedRoute>
-                <Suspense fallback={protectedPageFallback}>
-                  <AppLayout>
-                    <ReportPage />
-                  </AppLayout>
-                </Suspense>
-              </ProtectedRoute>
+              // The "Laporan" page (team timeline) was removed by the Owner on 2026-11-18;
+              // old links land on Laporan Saya.
+              <Navigate to="/my-report" replace />
             }
           />
           <Route
