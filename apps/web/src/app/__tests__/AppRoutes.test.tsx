@@ -10,7 +10,7 @@ describe('WH-0 Route Inventory & Protection Audit', () => {
     { path: '/my-tasks', protected: true, component: 'MyTasksPage' },
     { path: '/requirements', protected: true, component: 'MyTasksPage (legacy redirect alias)' },
     { path: '/tests', protected: true, component: 'WorkHubPage (legacy redirect alias)' },
-    { path: '/reports', protected: true, component: 'ReportPage' },
+    { path: '/reports', protected: true, component: 'redirect to /my-report (Laporan removed)' },
     { path: '/my-report', protected: true, component: 'MyWorkReportPage' },
     { path: '/user-flows', protected: true, component: 'UserFlowPage' },
     {

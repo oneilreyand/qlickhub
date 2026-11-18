@@ -518,22 +518,22 @@ const HowToUseSection: React.FC<{
                   <FileBarChart className="w-4 h-4" />
                 </div>
                 <h3 className="font-bold text-sm text-stone-900 dark:text-white">
-                  3. Report Dashboard
+                  3. Laporan Saya
                 </h3>
               </div>
               <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
-                Analitik visual kecepatan rilis, diagram status task, metrik prioritas, dan QA
-                Traceability Matrix untuk audit kualitas.
+                Kerjaan kamu lintas workspace: ketepatan waktu, beban harian dibanding kapasitas,
+                kewajaran waktu, dan irisan antar workspace.
               </p>
             </div>
             <Button
               size="sm"
               variant="outline"
               rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-              onClick={() => navigate('/reports')}
+              onClick={() => navigate('/my-report')}
               className="w-full text-xs"
             >
-              Buka Report
+              Buka Laporan Saya
             </Button>
           </div>
 

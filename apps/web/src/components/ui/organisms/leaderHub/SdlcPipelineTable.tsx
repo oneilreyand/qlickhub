@@ -47,6 +47,18 @@ export const SdlcStageDot: React.FC<{ stageLabel: string; stage: SdlcStageState 
       </span>
     );
   }
+  if (stage.state === 'untracked') {
+    return (
+      <span
+        role="img"
+        aria-label={label}
+        title={label}
+        className={`${DOT_BASE} border-2 border-dashed border-stone-300 text-stone-400 dark:border-stone-700 dark:text-stone-500`}
+      >
+        –
+      </span>
+    );
+  }
   return (
     <span
       role="img"
@@ -78,6 +90,10 @@ const Legend: React.FC = () => (
     <li className="flex items-center gap-1.5">
       <span className="h-4 w-4 rounded-full border-2 border-stone-300 dark:border-stone-700" />
       Belum
+    </li>
+    <li className="flex items-center gap-1.5">
+      <span className="h-4 w-4 rounded-full border-2 border-dashed border-stone-300 dark:border-stone-700" />
+      Belum dilacak
     </li>
   </ul>
 );

@@ -25,6 +25,8 @@ export function stageAriaLabel(stageLabel: string, stage: SdlcStageState): strin
       return `${stageLabel}: sedang berjalan, ${stage.days} hari`;
     case 'held':
       return `${stageLabel}: tertahan, ${stage.days} hari`;
+    case 'untracked':
+      return `${stageLabel}: belum dilacak`;
     default:
       return `${stageLabel}: belum`;
   }
@@ -35,6 +37,9 @@ export const BLOCKER_CATEGORY_LABEL: Record<LeaderBlockerCategory, string> = {
   clarification: 'Menunggu klarifikasi',
   environment: 'Lingkungan/infra',
   dependency: 'Menunggu dependency',
+  review: 'Menunggu review',
+  access: 'Menunggu akses',
+  other: 'Lainnya',
 };
 
 export type LeaderStatTone = 'neutral' | 'good' | 'warn' | 'bad';

@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Layers,
   Building2,
-  FileBarChart,
   UserRoundCheck,
   CheckSquare,
   BookOpen,
@@ -56,11 +55,6 @@ const navItems: NavItem[] = [
     icon: CheckSquare,
   },
   {
-    name: 'Laporan',
-    path: '/reports',
-    icon: FileBarChart,
-  },
-  {
     name: 'Laporan Saya',
     path: '/my-report',
     icon: UserRoundCheck,
@@ -91,12 +85,7 @@ const navItems: NavItem[] = [
 ];
 
 /** The four primary destinations stay on top; everything else is grouped under "Lainnya". */
-const PRIMARY_NAV_PATHS = new Set([
-  '/work?tab=overview',
-  '/work?tab=tasks',
-  '/my-tasks',
-  '/reports',
-]);
+const PRIMARY_NAV_PATHS = new Set(['/work?tab=overview', '/work?tab=tasks', '/my-tasks']);
 
 export const Sidebar: React.FC<SidebarProps> = ({ onCloseMobile, onHoverChange }) => {
   const location = useLocation();

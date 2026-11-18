@@ -202,7 +202,7 @@ describe('getSectionLabel', () => {
     expect(getSectionLabel('/work/subtasks/s1', 'overview', { returnTo: '/my-tasks' })).toBe(
       'Tugas Saya',
     );
-    expect(getSectionLabel('/reports', 'overview')).toBe('Laporan');
+    expect(getSectionLabel('/my-report', 'overview')).toBe('Laporan Saya');
     expect(getSectionLabel('/unknown', 'overview')).toBe('Qlick Hub');
   });
 });

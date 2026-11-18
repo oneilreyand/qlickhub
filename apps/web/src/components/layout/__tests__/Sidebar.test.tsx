@@ -71,11 +71,12 @@ function renderSidebar(
 }
 
 describe('Sidebar Role-based Visibility', () => {
-  it('keeps four primary destinations and groups the rest under Lainnya (ADR-035)', () => {
+  it('keeps three primary destinations and groups the rest under Lainnya (ADR-035; Laporan removed 2026-11-18)', () => {
     renderSidebar('owner');
 
     const links = screen.getAllByRole('link').map((link) => link.textContent?.trim());
-    expect(links.slice(0, 4)).toEqual(['Ringkasan', 'Task Hub', 'Tugas Saya', 'Laporan']);
+    expect(links.slice(0, 3)).toEqual(['Ringkasan', 'Task Hub', 'Tugas Saya']);
+    expect(links).not.toContain('Laporan');
     expect(screen.getByText('Lainnya')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ganti workspace/i })).toBeInTheDocument();
   });
@@ -142,12 +143,13 @@ describe('Sidebar Role-based Visibility', () => {
     unmountQa();
   });
 
-  it('shows Overview, Task Hub, Tugas Saya, and Report for all roles', () => {
+  it('shows Overview, Task Hub, Tugas Saya and Laporan Saya for all roles', () => {
     const { unmount } = renderSidebar('dev');
     expect(screen.getByText('Ringkasan')).toBeInTheDocument();
     expect(screen.getByText('Task Hub')).toBeInTheDocument();
     expect(screen.getByText('Tugas Saya')).toBeInTheDocument();
-    expect(screen.getByText('Laporan')).toBeInTheDocument();
+    expect(screen.getByText('Laporan Saya')).toBeInTheDocument();
+    expect(screen.queryByText('Laporan')).toBeNull();
     unmount();
   });
 
@@ -193,7 +195,7 @@ describe('Sidebar Role-based Visibility', () => {
     expect(screen.getByText('Folder workspace')).toBeInTheDocument();
     unmount();
 
-    renderSidebar('po', '/reports');
+    renderSidebar('po', '/my-report');
     expect(screen.queryByText('Folder workspace')).not.toBeInTheDocument();
   });
 });
