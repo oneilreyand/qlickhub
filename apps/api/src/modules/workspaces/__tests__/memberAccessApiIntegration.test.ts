@@ -130,4 +130,48 @@ describe('Member access overview HTTP / PostgreSQL Integration', () => {
     );
     assert.ok(!data.people.some((p) => p.userId === users.qa.id));
   });
+
+  test('AC-2.1 / AC-2.3: matrix cells use the per-Workspace endpoints and their limits', async () => {
+    const call = (w: string, method: string, path: string, body: unknown) =>
+      fetch(`${baseUrl}/workspaces/${ws[w].id}/members${path}`, {
+        method,
+        headers: { Cookie: cookies.lead, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    // gamma is not managed by lead (PO there) → 403, and nothing changes.
+    assert.strictEqual(
+      (await call('gamma', 'PATCH', `/${users.dev.id}`, { role: 'qa' })).status,
+      403,
+    );
+    // The Owner role cannot be handed out from a cell.
+    assert.strictEqual(
+      (await call('alpha', 'PATCH', `/${users.dev.id}`, { role: 'owner' })).status,
+      400,
+    );
+    // Adding to several Workspaces at once fails as a whole when one is not managed.
+    const mixed = await call('alpha', 'POST', '', {
+      email: users.stranger.email,
+      assignments: [
+        { workspaceId: ws.alpha.id, role: 'qa', specialties: [] },
+        { workspaceId: ws.gamma.id, role: 'qa', specialties: [] },
+      ],
+    });
+    assert.strictEqual(mixed.status, 403);
+    // A managed cell change is saved and visible in the overview.
+    const changed = await call('alpha', 'PATCH', `/${users.dev.id}`, {
+      role: 'dev',
+      specialties: ['frontend', 'mobile'],
+    });
+    assert.strictEqual(changed.status, 200);
+    const { data } = (await (await overview('lead')).json()) as {
+      data: {
+        people: { userId: string; memberships: { workspaceId: string; specialties: string[] }[] }[];
+      };
+    };
+    const dev = data.people.find((p) => p.userId === users.dev.id)!;
+    assert.deepStrictEqual(
+      dev.memberships.find((m) => m.workspaceId === ws.alpha.id)!.specialties.sort(),
+      ['frontend', 'mobile'],
+    );
+  });
 });

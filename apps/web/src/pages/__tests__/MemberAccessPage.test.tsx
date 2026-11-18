@@ -1,0 +1,205 @@
+import '@testing-library/jest-dom/vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
+import { MemoryRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MemberAccessOverview } from '@qlick/contracts';
+import { MemberAccessPage } from '../MemberAccessPage';
+import authReducer from '../../store/authSlice';
+import workspaceReducer from '../../store/workspaceSlice';
+import uiReducer from '../../store/uiSlice';
+import type { WorkspaceItem } from '../../lib/api/workspaceService';
+
+const access = vi.hoisted(() => ({ getOverview: vi.fn() }));
+const ws = vi.hoisted(() => ({
+  updateMemberRole: vi.fn(),
+  addMember: vi.fn(),
+  removeMember: vi.fn(),
+}));
+vi.mock('../../lib/api/memberAccessService', () => ({ memberAccessService: access }));
+vi.mock('../../lib/api/workspaceService', () => ({ workspaceService: ws }));
+
+const ME = '10000000-0000-4000-8000-000000000000';
+const RINA = '20000000-0000-4000-8000-000000000000';
+const NADIA = '30000000-0000-4000-8000-000000000000';
+const PAY = '40000000-0000-4000-8000-000000000000';
+const MOB = '50000000-0000-4000-8000-000000000000';
+const OLD = '60000000-0000-4000-8000-000000000000';
+
+const overview: MemberAccessOverview = {
+  workspaces: [
+    { id: PAY, name: 'Payment', actorRole: 'owner', archived: false, memberCount: 3 },
+    { id: MOB, name: 'Mobile App', actorRole: 'admin', archived: false, memberCount: 2 },
+    { id: OLD, name: 'Lama', actorRole: 'owner', archived: true, memberCount: 1 },
+  ],
+  people: [
+    {
+      userId: ME,
+      name: 'Saya Owner',
+      email: 'me@contoh.id',
+      avatarUrl: null,
+      activation: 'active',
+      memberships: [
+        { workspaceId: PAY, role: 'owner', specialties: [], joinedAt: '2026-01-01T00:00:00.000Z' },
+      ],
+    },
+    {
+      userId: RINA,
+      name: 'Rina Wijaya',
+      email: 'rina@contoh.id',
+      avatarUrl: null,
+      activation: 'active',
+      memberships: [
+        {
+          workspaceId: PAY,
+          role: 'dev',
+          specialties: ['backend'],
+          joinedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    },
+    {
+      userId: NADIA,
+      name: 'Nadia Anggraini',
+      email: 'nadia@contoh.id',
+      avatarUrl: null,
+      activation: 'pending',
+      memberships: [
+        { workspaceId: MOB, role: 'qa', specialties: [], joinedAt: '2026-01-01T00:00:00.000Z' },
+      ],
+    },
+  ],
+};
+
+function renderPage() {
+  const store = configureStore({
+    reducer: { auth: authReducer, workspace: workspaceReducer, ui: uiReducer },
+    preloadedState: {
+      auth: {
+        currentUser: { id: ME, email: 'me@contoh.id', name: 'Saya Owner', role: 'admin' },
+        isAuthenticated: true,
+      } as never,
+      workspace: {
+        workspaces: [
+          { id: PAY, name: 'Payment', role: 'owner' } as unknown as WorkspaceItem,
+          { id: MOB, name: 'Mobile App', role: 'admin' } as unknown as WorkspaceItem,
+        ],
+        activeWorkspaceId: PAY,
+        members: [],
+        isLoading: false,
+        isMembersLoading: false,
+        isInitialized: true,
+        error: null,
+      } as never,
+    },
+  });
+  return render(
+    <Provider store={store}>
+      <MemoryRouter>
+        <MemberAccessPage />
+      </MemoryRouter>
+    </Provider>,
+  );
+}
+
+describe('MemberAccessPage (MEMBER-ACCESS-HUB P2)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    access.getOverview.mockResolvedValue(overview);
+  });
+
+  it('shows the people × workspace matrix with status and read-only cells', async () => {
+    renderPage();
+    expect(await screen.findByText('Rina Wijaya')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Mobile App' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: /Ubah akses Rina Wijaya di Payment: Developer · Backend/,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Tambahkan Rina Wijaya ke Mobile App' }),
+    ).toBeInTheDocument();
+    // Owner role, own access and archived Workspaces are read-only.
+    expect(screen.queryByRole('button', { name: /Saya Owner/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /di Lama|ke Lama/ })).toBeNull();
+    expect(screen.getAllByText('Menunggu aktivasi').length).toBeGreaterThan(0);
+  });
+
+  it('filters by pending activation, search and role', async () => {
+    renderPage();
+    await screen.findByText('Rina Wijaya');
+    fireEvent.click(screen.getByRole('tab', { name: 'Menunggu aktivasi (1)' }));
+    expect(screen.queryByText('Rina Wijaya')).toBeNull();
+    expect(screen.getByText('Nadia Anggraini')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Semua (3)' }));
+    fireEvent.change(screen.getByLabelText('Cari nama atau email'), { target: { value: 'rina' } });
+    expect(screen.queryByText('Nadia Anggraini')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Cari nama atau email'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Filter peran'), { target: { value: 'qa' } });
+    expect(screen.queryByText('Rina Wijaya')).toBeNull();
+  });
+
+  it('changes a role through the per-workspace endpoint and reloads', async () => {
+    ws.updateMemberRole.mockResolvedValue({});
+    renderPage();
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Ubah akses Rina Wijaya di Payment/ }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Peran'), { target: { value: 'qa' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+    await waitFor(() =>
+      expect(ws.updateMemberRole).toHaveBeenCalledWith(PAY, RINA, { role: 'qa', specialties: [] }),
+    );
+    await waitFor(() => expect(access.getOverview).toHaveBeenCalledTimes(2));
+  });
+
+  it('adds an existing person to another workspace, requiring a specialty for developers', async () => {
+    ws.addMember.mockResolvedValue({ assignmentResults: [] });
+    renderPage();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Tambahkan Rina Wijaya ke Mobile App' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Peran'), { target: { value: 'dev' } });
+    expect(within(dialog).getByRole('button', { name: 'Tambahkan' })).toBeDisabled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Mobile' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Tambahkan' }));
+    await waitFor(() =>
+      expect(ws.addMember).toHaveBeenCalledWith(MOB, {
+        email: 'rina@contoh.id',
+        assignments: [{ workspaceId: MOB, role: 'dev', specialties: ['mobile'] }],
+      }),
+    );
+  });
+
+  it('removes someone after confirmation and shows server errors', async () => {
+    ws.removeMember.mockRejectedValueOnce(new Error('Tidak boleh mengeluarkan Owner'));
+    renderPage();
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Ubah akses Rina Wijaya di Payment/ }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Keluarkan dari workspace' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ya, keluarkan' }));
+    await waitFor(() => expect(ws.removeMember).toHaveBeenCalledWith(PAY, RINA));
+  });
+
+  it('shows the permission state for non-managers and an error with retry', async () => {
+    access.getOverview.mockRejectedValueOnce(
+      Object.assign(new Error('Forbidden'), { status: 403 }),
+    );
+    const { unmount } = renderPage();
+    expect(await screen.findByText('Anggota & Akses khusus Owner dan Admin')).toBeInTheDocument();
+    unmount();
+    access.getOverview
+      .mockRejectedValueOnce(Object.assign(new Error('Server sibuk'), { status: 500 }))
+      .mockResolvedValueOnce(overview);
+    renderPage();
+    expect(await screen.findByText('Server sibuk')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Coba lagi' }));
+    expect(await screen.findByText('Rina Wijaya')).toBeInTheDocument();
+  });
+});
