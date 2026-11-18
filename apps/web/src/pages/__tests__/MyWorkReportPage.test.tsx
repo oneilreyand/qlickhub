@@ -85,6 +85,27 @@ const report: MyWorkReport = {
     unmeasuredTaskIds: [id(5)],
     timeOffDates: [],
   },
+  crossWorkspace: [
+    {
+      kind: 'dependency',
+      id: id(7),
+      blocker: { isRedacted: true, startDate: '2030-01-06', dueDate: '2030-01-09' },
+      blocked: {
+        isRedacted: false,
+        id: id(2),
+        title: 'Kerjaan 2',
+        kind: 'subtask',
+        featureId: id(9),
+        featureName: 'Refund',
+        workspaceId: WS_B,
+        workspaceName: 'Mobile',
+        status: 'in_progress',
+        startDate: '2030-01-07',
+        dueDate: '2030-01-08',
+      },
+      startsBeforeDependencyDone: true,
+    },
+  ],
 };
 
 function renderPage() {
@@ -118,6 +139,9 @@ describe('MyWorkReportPage (MY-WORK-REPORT P1/P2)', () => {
     expect(screen.getByText(/Ada hambatan terbuka/)).toBeInTheDocument();
     expect(screen.getByText(/1 subtask berjadwal belum punya effort/)).toBeInTheDocument();
     expect(screen.getByText('Terlalu ketat (0,4×)')).toBeInTheDocument();
+    // P4: the other side of a relation the reader may not open is redacted.
+    expect(screen.getByText(/Kerjaan yang tidak bisa kamu buka/)).toBeInTheDocument();
+    expect(screen.getByText(/sebelum dependency selesai/)).toBeInTheDocument();
     expect(
       screen.getByText(/Melebihi kapasitas di 1 hari; penyumbang terbesar "Kerjaan 3"/),
     ).toBeInTheDocument();

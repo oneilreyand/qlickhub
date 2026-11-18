@@ -153,6 +153,7 @@
         "WorkspaceMemberModel",
         "WorkspaceHolidayModel",
         "TaskBlockerModel",
+        "TaskRelationModel",
         "WorkspaceMemberSpecialtyModel",
         "WorkspaceMembershipActivityModel",
         "WorkspaceModel"

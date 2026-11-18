@@ -14,6 +14,7 @@ import { getEffectiveWeeklyCapacities } from '../capacity/internal/personalCapac
 import { todayInTimeZone, type WorkingDayCalendar } from '../workspaces/internal/workingDays.js';
 import { classifyPunctuality, computeDailyLoad, eachDate } from './workReportRules.js';
 import { classifyTimeFairness, getEffortBaselines } from './fairness.js';
+import { relationLinks, scheduleConflicts } from './crossWorkspace.js';
 import { countWorkingDays } from '../workspaces/internal/workingDays.js';
 
 /**
@@ -110,6 +111,7 @@ export async function getMyWorkReport(
       unmeasuredTaskIds: [],
       timeOffDates: [],
     },
+    crossWorkspace: [],
   };
   if (scoped.length === 0) return base;
 
@@ -257,8 +259,17 @@ export async function getMyWorkReport(
     capacitySource: capacity.source,
   });
 
+  const crossWorkspace = [
+    ...scheduleConflicts(load),
+    ...(await relationLinks(
+      actorId,
+      items.map((item) => item.taskId),
+    )),
+  ];
+
   return {
     ...base,
+    crossWorkspace,
     counts,
     items: query.punctuality ? items.filter((i) => i.punctuality === query.punctuality) : items,
     load,

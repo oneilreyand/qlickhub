@@ -5,6 +5,7 @@ import { requireWorkspaceMember } from '../../policies/workspacePolicy.js';
 import { taskController } from './taskController.js';
 import { taskLinkController } from './taskLinkController.js';
 import { taskBlockerController } from './taskBlockerController.js';
+import { taskRelationController } from './taskRelationController.js';
 
 export const taskRoutes = Router({ mergeParams: true });
 
@@ -66,6 +67,25 @@ taskRoutes.post(
   '/:taskId/blockers/:blockerId/ping',
   requireWorkspaceMember(['owner', 'admin']),
   (req, res) => taskBlockerController.ping(req, res),
+);
+
+// Relations between tasks (MY-WORK-REPORT P4, ADR-047, AUTH-016): read with the task; create and
+// delete by Planners of this (source) Workspace, who must also be members of the target Workspace.
+taskRoutes.get(
+  '/:taskId/relations',
+  requireWorkspaceMember(),
+  requireTaskReadAccess(),
+  (req, res) => taskRelationController.list(req, res),
+);
+taskRoutes.post(
+  '/:taskId/relations',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  (req, res) => taskRelationController.create(req, res),
+);
+taskRoutes.delete(
+  '/:taskId/relations/:relationId',
+  requireWorkspaceMember(['owner', 'admin', 'po']),
+  (req, res) => taskRelationController.remove(req, res),
 );
 
 taskRoutes.get(

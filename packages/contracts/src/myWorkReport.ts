@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { CapacitySourceSchema } from './capacity.js';
 import { TaskEffortSchema, TaskStatusSchema } from './task.js';
 import { IsoDateSchema } from './workCalendar.js';
+import { RelatedTaskSchema, TaskRelationTypeSchema } from './taskRelation.js';
 
 /**
  * MY-WORK-REPORT P1 + P2 (ADR-044): the caller's own work across their active Workspaces.
@@ -114,6 +115,38 @@ export const MyWorkLoadSchema = z.object({
 });
 export type MyWorkLoad = z.infer<typeof MyWorkLoadSchema>;
 
+/**
+ * MY-WORK-REPORT P4 (ADR-047): overlaps across Workspaces in the caller's own work. The caller's
+ * own tasks are always shown in full; the other side of a relation is redacted when the caller
+ * may not read it.
+ */
+export const MyCrossWorkspaceLinkSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('schedule_conflict'),
+    id: z.string(),
+    from: z.string(),
+    to: z.string(),
+    peakPercent: z.number().int(),
+    taskIds: z.array(z.string().uuid()),
+  }),
+  z.object({
+    kind: z.literal('dependency'),
+    id: z.string().uuid(),
+    blocker: RelatedTaskSchema,
+    blocked: RelatedTaskSchema,
+    /** The blocked task starts before the blocker is due and the blocker is not done. */
+    startsBeforeDependencyDone: z.boolean(),
+  }),
+  z.object({
+    kind: z.literal('related'),
+    id: z.string().uuid(),
+    type: TaskRelationTypeSchema,
+    from: RelatedTaskSchema,
+    to: RelatedTaskSchema,
+  }),
+]);
+export type MyCrossWorkspaceLink = z.infer<typeof MyCrossWorkspaceLinkSchema>;
+
 export const MyWorkReportSchema = z.object({
   generatedAt: z.string(),
   period: z.object({ from: z.string(), to: z.string() }),
@@ -121,6 +154,7 @@ export const MyWorkReportSchema = z.object({
   counts: z.record(WorkPunctualitySchema, z.number().int().min(0)),
   items: z.array(MyWorkItemSchema),
   load: MyWorkLoadSchema,
+  crossWorkspace: z.array(MyCrossWorkspaceLinkSchema),
 });
 export type MyWorkReport = z.infer<typeof MyWorkReportSchema>;
 

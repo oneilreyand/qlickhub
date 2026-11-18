@@ -9,6 +9,12 @@
 Merge ke `main` otomatis men-deploy Production (Vercel). Setiap phase dicatat di sini: PR, tier,
 file Tier 2 (migrasi, ADR, middleware), merge commit, dan nama bundle setelah deploy.
 
+| Phase | PR                    | Tier                                | Migrasi                                                                             | Catatan                     |
+| ----- | --------------------- | ----------------------------------- | ----------------------------------------------------------------------------------- | --------------------------- |
+| P1+P2 | #139                  | 2                                   | —                                                                                   | Laporan Saya + beban harian |
+| P3    | #141                  | 2                                   | —                                                                                   | Kewajaran waktu             |
+| P4    | `feat/task-relations` | 2 (migrasi, Architecture, registry) | `20261118000102-create-task-relations` dijalankan Owner di Production sebelum merge | Relasi task + irisan        |
+
 ## 2. Verifikasi di environment target
 
 Smoke Production read-only per phase setelah deploy; mutasi hanya pada data uji yang disetujui Owner.

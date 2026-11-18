@@ -354,6 +354,10 @@ Keputusan ini dijelaskan dalam
 - Ringkasan akses lintas Workspace (`GET /v1/me/member-access`) hanya memuat Workspace tempat aktor menjadi Owner atau Admin. Keanggotaan seseorang di Workspace lain tidak pernah ditampilkan; aktor yang tidak mengelola Workspace mana pun ditolak (`AUTH-014`).
 - Setiap perubahan akses tetap memakai endpoint dan aturan per Workspace yang sudah ada; tidak ada entitas Organization atau peran admin organisasi. Keputusan tercatat di [ADR-046](adr/ADR-046-MEMBER-ACCESS-HUB-AND-TIME-BOUND-MEMBERSHIP.md).
 
+### Relasi Task Lintas Workspace
+
+- Relasi antar task (`blocks`, `relates_to`, `duplicates`; `/v1/workspaces/:workspaceId/tasks/:taskId/relations`) hanya dibuat atau dihapus oleh Planner (Owner/Admin/PO) Workspace task sumber yang juga anggota aktif Workspace task tujuan; task tujuan yang tidak dikenal atau di luar keanggotaan sama-sama ditolak 403. Membaca relasi mengikuti akses baca task (`AUTH-013`); detail task di sisi lain hanya tampil bila pembaca boleh membaca task itu, selain itu hanya jenis relasi dan rentang tanggal (`AUTH-016`, `AUTH-011`). Keputusan tercatat di [ADR-047](adr/ADR-047-CROSS-WORKSPACE-TASK-RELATIONS.md).
+
 ### Kapasitas Pribadi dan Cuti
 
 - Kapasitas pribadi dan cuti (`/v1/me/capacity`, `/v1/me/time-off`, `/v1/users/:userId/capacity`, `/v1/users/:userId/time-off`) hanya dapat dibaca dan diubah oleh orang itu sendiri, atau oleh Owner/Admin dari Workspace aktif tempat orang itu menjadi anggota aktif. Pihak lain ditolak 403, termasuk untuk id yang tidak ada, sehingga keberadaan akun tidak terungkap (`AUTH-015`).
