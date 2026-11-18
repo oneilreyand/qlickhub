@@ -30,6 +30,46 @@ export const WorkRiskReasonSchema = z.enum([
 ]);
 export type WorkRiskReason = z.infer<typeof WorkRiskReasonSchema>;
 
+/**
+ * MY-WORK-REPORT P3 (ADR-044 butir 5): time fairness of one task's plan. The planned working days
+ * are compared with the median actual working days of finished Subtasks of the same effort in the
+ * same Workspace (last 90 days, at least 5 samples). Never compares people.
+ */
+export const EFFORT_BASELINE_WINDOW_DAYS = 90;
+export const EFFORT_BASELINE_MIN_SAMPLES = 5;
+export const TIME_FAIRNESS_TIGHT_BELOW = 0.7;
+export const TIME_FAIRNESS_LOOSE_ABOVE = 1.5;
+
+export const TimeFairnessLevelSchema = z.enum([
+  'tight',
+  'fair',
+  'loose',
+  'insufficient_data',
+  'not_applicable',
+]);
+export type TimeFairnessLevel = z.infer<typeof TimeFairnessLevelSchema>;
+
+export const TimeFairnessSchema = z.object({
+  level: TimeFairnessLevelSchema,
+  /** planned ÷ median, rounded to 1 decimal; null when not computed. */
+  ratio: z.number().nullable(),
+  plannedWorkingDays: z.number().int().nullable(),
+  medianWorkingDays: z.number().nullable(),
+  sampleCount: z.number().int().min(0),
+});
+export type TimeFairness = z.infer<typeof TimeFairnessSchema>;
+
+export const EffortBaselineSchema = z.object({
+  workspaceId: z.string().uuid(),
+  windowDays: z.number().int(),
+  minSamples: z.number().int(),
+  efforts: z.record(
+    TaskEffortSchema,
+    z.object({ medianWorkingDays: z.number().nullable(), sampleCount: z.number().int().min(0) }),
+  ),
+});
+export type EffortBaseline = z.infer<typeof EffortBaselineSchema>;
+
 export const MyWorkItemSchema = z.object({
   taskId: z.string().uuid(),
   kind: z.enum(['subtask', 'feature']),
@@ -49,6 +89,7 @@ export const MyWorkItemSchema = z.object({
   daysLate: z.number().int().nullable(),
   reasons: z.array(WorkRiskReasonSchema),
   openBlockerCount: z.number().int().min(0),
+  timeFairness: TimeFairnessSchema,
 });
 export type MyWorkItem = z.infer<typeof MyWorkItemSchema>;
 

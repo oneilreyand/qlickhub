@@ -33,6 +33,28 @@ const dayMonth = new Intl.DateTimeFormat('id-ID', {
 const asDate = (iso: string) => new Date(`${iso}T00:00:00Z`);
 export const formatDayMonth = (iso: string) => dayMonth.format(asDate(iso));
 
+const ratioText = (ratio: number | null) =>
+  ratio === null ? '' : ` (${ratio.toLocaleString('id-ID', { maximumFractionDigits: 1 })}×)`;
+
+/** MY-WORK-REPORT P3: label of a task's planned time against the Workspace median. */
+export function timeFairnessView(fairness: MyWorkItem['timeFairness']): {
+  label: string;
+  level: WorkItemRow['timeFairness'];
+} {
+  switch (fairness.level) {
+    case 'tight':
+      return { label: `Terlalu ketat${ratioText(fairness.ratio)}`, level: 'tight' };
+    case 'loose':
+      return { label: `Longgar${ratioText(fairness.ratio)}`, level: 'loose' };
+    case 'fair':
+      return { label: 'Wajar', level: 'fair' };
+    case 'insufficient_data':
+      return { label: 'Data belum cukup', level: 'unknown' };
+    default:
+      return { label: 'Tanpa effort/jadwal', level: 'unknown' };
+  }
+}
+
 const effortOf = (effort: MyWorkItem['effort']): WorkEffort | null =>
   effort ? (effort.toUpperCase() as WorkEffort) : null;
 
@@ -83,9 +105,10 @@ export function mapMyWorkReport(report: MyWorkReport): MyWorkReportData {
     scheduleLabel: scheduleLabel(item),
     statusLabel: STATUS_LABEL[item.status],
     punctuality: item.punctuality,
-    // Time fairness arrives in MY-WORK-REPORT P3.
-    timeFairnessLabel: 'Belum dihitung',
-    timeFairness: 'unknown',
+    ...(() => {
+      const view = timeFairnessView(item.timeFairness);
+      return { timeFairnessLabel: view.label, timeFairness: view.level };
+    })(),
   }));
 
   return {

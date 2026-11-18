@@ -1,4 +1,4 @@
-import type { MyWorkReport, WorkPunctuality } from '@qlick/contracts';
+import type { EffortBaseline, MyWorkReport, WorkPunctuality } from '@qlick/contracts';
 import { apiClient, getHumanReadableApiErrorMessage } from './apiClient';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/v1';
@@ -22,6 +22,14 @@ function toQuery(filter: MyWorkReportFilter, format?: 'csv'): string {
 export const myWorkReportService = {
   async get(filter: MyWorkReportFilter): Promise<MyWorkReport> {
     const res = await apiClient<{ data: MyWorkReport }>(`/me/work-report?${toQuery(filter)}`);
+    return res.data;
+  },
+
+  /** MY-WORK-REPORT P3: median working days per effort in a Workspace (aggregates only). */
+  async getEffortBaseline(workspaceId: string): Promise<EffortBaseline> {
+    const res = await apiClient<{ data: EffortBaseline }>(
+      `/workspaces/${workspaceId}/effort-baseline`,
+    );
     return res.data;
   },
 

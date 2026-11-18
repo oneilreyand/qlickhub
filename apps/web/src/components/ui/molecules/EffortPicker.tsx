@@ -11,6 +11,8 @@ export interface EffortPickerProps {
   required?: boolean;
   error?: string | null;
   id?: string;
+  /** Optional hint replacing the default text, e.g. the Workspace median (MY-WORK-REPORT P3). */
+  hint?: string | null;
 }
 
 export const EffortPicker: React.FC<EffortPickerProps> = ({
@@ -20,6 +22,7 @@ export const EffortPicker: React.FC<EffortPickerProps> = ({
   required = false,
   error,
   id = 'subtask-effort',
+  hint,
 }) => (
   <fieldset aria-describedby={error ? `${id}-error` : `${id}-hint`}>
     <legend className="mb-1 block text-xs font-bold text-stone-700 dark:text-stone-300">
@@ -62,7 +65,7 @@ export const EffortPicker: React.FC<EffortPickerProps> = ({
       </p>
     ) : (
       <p id={`${id}-hint`} className="mt-1 text-[11px] text-stone-500 dark:text-stone-400">
-        Ukuran kerja relatif, sama di semua workspace. Wajib bila Subtask dijadwalkan.
+        {hint || 'Ukuran kerja relatif, sama di semua workspace. Wajib bila Subtask dijadwalkan.'}
       </p>
     )}
   </fieldset>

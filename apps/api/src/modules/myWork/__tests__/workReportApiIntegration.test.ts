@@ -266,7 +266,10 @@ describe('My work report HTTP / PostgreSQL Integration (MY-WORK-REPORT P1/P2)', 
     const csv = await get('dev', `${period}&workspaceId=${ws.b.id}&format=csv`);
     assert.strictEqual(csv.status, 200);
     assert.match(csv.headers.get('content-type') ?? '', /text\/csv/);
-    const lines = (csv.body as string).replace(/^\uFEFF/, '').trim().split('\r\n');
+    const lines = (csv.body as string)
+      .replace(/^\uFEFF/, '')
+      .trim()
+      .split('\r\n');
     assert.strictEqual(
       lines[0],
       'Judul,Jenis,Feature,Workspace,Status,Effort,Mulai,Tenggat,Selesai,Ketepatan',

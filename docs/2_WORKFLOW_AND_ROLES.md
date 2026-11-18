@@ -284,7 +284,11 @@ Tanpa jadwal (termasuk kerjaan selesai yang tanggal selesainya tidak tercatat). 
 (poin effort ÷ hari kerja Subtask) untuk Subtask yang dijadwalkan pada hari itu, dibagi kapasitas
 harian (kapasitas mingguan ÷ hari kerja orang itu); hari libur Workspace dan hari cuti tidak dihitung;
 di atas 100% berarti melebihi kapasitas, beserta kerjaan penyebabnya. Subtask berjadwal tanpa effort
-ditampilkan sebagai "beban belum diukur", tidak dihitung nol. Laporan tidak pernah membandingkan orang.
+ditampilkan sebagai "beban belum diukur", tidak dihitung nol. Kewajaran waktu dinilai per kerjaan: hari
+kerja yang direncanakan dibanding median hari kerja nyata Subtask dengan effort yang sama di Workspace
+yang sama (90 hari terakhir, minimal 5 Subtask selesai yang tercatat mulai dikerjakan); di bawah 0,7×
+Terlalu ketat, di atas 1,5× Longgar, selain itu Wajar, atau Data belum cukup. Median hanya angka
+gabungan dan tidak menyebut siapa yang mengerjakan. Laporan tidak pernah membandingkan orang.
 Dasar keputusan: ADR-044.
 
 ### Hambatan pada Task
