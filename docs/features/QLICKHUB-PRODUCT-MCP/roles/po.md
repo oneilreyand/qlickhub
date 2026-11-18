@@ -7,8 +7,8 @@ bersama agent. Agent menanyakan yang belum pasti dan tidak mengarang assignee at
 
 Saat assign, minta kandidat: agent menyebut member dengan spesialisasi yang cocok dan menandai
 bentrok tanggal. Bentrok hanya peringatan; PO tetap memutuskan. Bentrok di Workspace yang PO tidak
-ikuti hanya tampil sebagai jumlah dan rentang tanggal. Beban poin/kapasitas belum tersedia untuk PO
-(K9).
+ikuti hanya tampil sebagai jumlah dan rentang tanggal. Beban poin/kapasitas orang lain tidak
+ditampilkan untuk PO (K9 = a); itu hanya di Leader untuk Owner/Admin.
 
 Pilih tujuan dari backend, review preview, beri instruksi publish eksplisit. Terima link Feature dan
 periksa hierarchy di aplikasi. OAuth/Workspace denied berarti hentikan publish. Jika timeout, gunakan

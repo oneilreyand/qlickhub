@@ -24,6 +24,7 @@ Rencana [Qlick Hub Product MCP](../features/QLICKHUB-PRODUCT-MCP/README.md) menc
 untuk semua role dari agent pilihan, rilis bertahap v1–v3; perluasan semua role ada di
 [rencana perluasan](QLICKHUB_MCP_ALL_ROLES_PLAN.md) (Owner memilih K1–K8, 2026-11-18). OAuth
 provider, host, ADR/SSoT Apply dan write agent, serta breakdown implementasi masih menunggu keputusan.
+[Rencana spike OAuth dan hosting](QLICKHUB_MCP_OAUTH_HOSTING_SPIKE_PLAN.md) menunggu persetujuan Owner.
 
 Aktif: [Rencana lanjutan F1–F4](QLICKHUB_FOLLOWUP_F1_F4_PLAN.md) — jadwal subtask, referensi & media,
 perubahan Brief, dan alur rilis (2026-11-07).

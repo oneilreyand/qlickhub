@@ -6,6 +6,6 @@ Login OAuth menggunakan akun sendiri. Sebagai Planner, Owner/Admin menjalankan a
 [PO](po.md): grooming, kandidat assignee dengan cek bentrok, preview, lalu publish setelah instruksi
 eksplisit. Sebagai Leader, Owner/Admin dapat bertanya ringkasan lewat jalur [Leader](leader.md).
 
-Owner menetapkan keputusan auth/Apply, K9, dan K10 sebelum Build serta rollout sesuai
+Owner menetapkan keputusan auth/Apply sebelum Build serta rollout sesuai
 [release](../release.md). Sign-off, keputusan rilis, governance, delete, anggota/role, dan deploy
 tetap di aplikasi (K6). Hak mengikuti [authorization](../authorization.md), bukan nama agent.

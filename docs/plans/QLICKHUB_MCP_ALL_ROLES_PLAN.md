@@ -113,7 +113,7 @@ Playwright untuk mengirim hasil run ke Qlick Hub. Jalur ini tetap memakai akun d
 | K8  | Instruksi perilaku per role       | **A. MCP prompts dari server**, misalnya "grooming", "kerjakan subtask", "uji AC". Satu sumber untuk semua client. Kontranya dukungan prompts di tiap client perlu diuji. **B. File instruksi per client** (AGENTS.md, skill). Mudah dibuat, tapi menyalin aturan ke banyak tempat, padahal aturan repo melarang itu.                                                                                      | A, dengan `setup.md` cukup menautkan                       |
 
 Saat eksekusi muncul dua keputusan terbuka baru: K9 (PO melihat beban poin saat assign) dan K10
-(Developer menambah tautan Task). Keduanya dicatat di `solution.md` dan tidak diputuskan di sini.
+(Developer menambah tautan Task). Keduanya dicatat di `solution.md`; Owner kemudian memilih opsi a untuk keduanya (2026-11-18).
 
 ## 6. Berkas yang akan berubah
 

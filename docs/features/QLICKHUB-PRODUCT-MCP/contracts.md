@@ -41,15 +41,15 @@ endpoint relatif terhadap `/v1/workspaces/:workspaceId` kecuali diawali `/v1`. B
 
 ### Owner / Admin / PO (Planner)
 
-| Tool                              | Sifat       | Rilis | Endpoint / service                                                               |
-| --------------------------------- | ----------- | ----- | -------------------------------------------------------------------------------- |
-| list_feature_folders              | Read        | v1    | Folder valid pada Workspace yang diizinkan                                       |
-| get_feature_spec                  | Read        | v1    | `GET /feature-specs/:specId`                                                     |
-| find_available_assignees          | Read        | v1    | Spesialisasi member (`developerSupportsDeliveryArea`) + `GET /capacity/timeline` |
-| check_assignment_conflict         | Read        | v1    | `POST /capacity/assignment-preview` (FLOW-007, redaksi AUTH-011)                 |
-| preview_groomed_feature           | Read domain | v1    | Validasi field wajib + cek bentrok tiap subtask `assigned`; tanpa write domain   |
-| publish_feature                   | Write       | v1    | Payload final + Workspace/Folder + key → receipt dan link Feature                |
-| release_subtask, reassign_subtask | Write       | v3    | `POST /tasks/:taskId/release`, `/reassign` (ADR-038)                             |
+| Tool                              | Sifat       | Rilis | Endpoint / service                                                                                              |
+| --------------------------------- | ----------- | ----- | --------------------------------------------------------------------------------------------------------------- |
+| list_feature_folders              | Read        | v1    | Folder valid pada Workspace yang diizinkan                                                                      |
+| get_feature_spec                  | Read        | v1    | `GET /feature-specs/:specId`                                                                                    |
+| find_available_assignees          | Read        | v1    | Spesialisasi member (`developerSupportsDeliveryArea`) + `GET /capacity/timeline`; tanpa poin/kapasitas (K9 = a) |
+| check_assignment_conflict         | Read        | v1    | `POST /capacity/assignment-preview` (FLOW-007, redaksi AUTH-011)                                                |
+| preview_groomed_feature           | Read domain | v1    | Validasi field wajib + cek bentrok tiap subtask `assigned`; tanpa write domain                                  |
+| publish_feature                   | Write       | v1    | Payload final + Workspace/Folder + key → receipt dan link Feature                                               |
+| release_subtask, reassign_subtask | Write       | v3    | `POST /tasks/:taskId/release`, `/reassign` (ADR-038)                                                            |
 
 ### Developer
 

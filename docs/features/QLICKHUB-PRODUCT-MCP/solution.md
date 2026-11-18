@@ -1,7 +1,7 @@
 # QLICKHUB-PRODUCT-MCP — Tahap 1: Decision Snapshot
 
 **Status:** Draft
-**Gerbang:** G1 — menunggu keputusan Owner (K1–K8 dipilih 2026-11-18; OAuth, host, K9, K10 terbuka)
+**Gerbang:** G1 — menunggu keputusan Owner (K1–K10 dipilih 2026-11-18; OAuth dan host terbuka)
 **Applicable Policy IDs:** AI-001, AI-006, AI-011, DOC-002, SDLC-001
 
 ## Kondisi dan opsi
@@ -65,12 +65,19 @@ disetujui dan tidak ada policy yang diaktifkan.
 | K7  | Client target                   | Tier A: Claude, Codex, Antigravity. Tier B: OpenCode, Gemini CLI — ditulis "akan diuji", tidak diklaim kompatibel.                                                                                                                                         | Tier A + B                                       |
 | K8  | Instruksi perilaku per role     | A: MCP prompts dari server — satu sumber untuk semua client; dukungan prompts per client diuji. B: file instruksi per client — menyalin aturan ke banyak tempat.                                                                                           | A; setup.md cukup menautkan                      |
 
-### Keputusan terbuka baru
+### Keputusan tambahan K9 dan K10
 
 | ID  | Keputusan                                   | Fakta                                                                                                                                                                                                                                                                                                             | Alternatif                                                                                                                                                                          |
 | --- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | K9  | PO melihat beban poin/kapasitas saat assign | Kapasitas pribadi hanya dapat dibaca pemilik akun atau Owner/Admin Workspace yang sama ([personalCapacity.ts](../../../apps/api/src/modules/capacity/internal/personalCapacity.ts)); beban poin vs kapasitas hanya di Leader (Owner/Admin). Timeline dan assignment-preview untuk PO tidak memuat poin atau cuti. | a: PO hanya melihat bentrok tanggal + spesialisasi (tanpa perubahan). b: ringkasan beban dalam persen untuk PO saat assign — perubahan authorization/kontrak, perlu ADR dan Tier 2. |
 | K10 | Developer menambah tautan Task              | POST links hanya Owner/Admin/PO ([taskRoutes.ts](../../../apps/api/src/modules/tasks/taskRoutes.ts)).                                                                                                                                                                                                             | a: tetap; PR lewat komentar/evidence. b: buka untuk assignee Developer — perlu ADR.                                                                                                 |
 
+Pilihan Owner (chat 2026-11-18): **K9 = a** — PO tidak melihat beban poin/kapasitas orang lain; bantuan
+assign untuk PO hanya spesialisasi dan bentrok tanggal. Beban poin tetap hanya untuk Owner/Admin di
+Leader. **K10 = a** — Developer tidak menambah tautan Task; link PR ditulis sebagai komentar. Tidak ada
+perubahan authorization.
+
 Keputusan terbuka v1 (OAuth server, registrasi client, hosting, privacy, rate limit, semantik
-publish) di atas tetap berlaku untuk semua rilis.
+publish) di atas tetap berlaku untuk semua rilis. OAuth server, registrasi client, dan hosting akan
+dijawab lewat [rencana spike](../../plans/QLICKHUB_MCP_OAUTH_HOSTING_SPIKE_PLAN.md), yang juga memeriksa
+ulang K4 terhadap revisi MCP 2026-07-28.

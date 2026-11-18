@@ -13,20 +13,20 @@ disetujui dan tidak ada policy yang diaktifkan.
 
 Riwayat: v1 (2026-11-03) merancang grooming Owner/PO lalu publish. Pembaruan 2026-11-18 memperluas
 rancangan ke semua role sesuai [rencana perluasan](../../plans/QLICKHUB_MCP_ALL_ROLES_PLAN.md);
-Owner memilih seluruh rekomendasi K1–K8 di [solution.md](solution.md).
+Owner memilih seluruh rekomendasi K1–K8 serta opsi a untuk K9 dan K10 di [solution.md](solution.md).
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal | Catatan                                           |
-| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | ------------------------ | ------------------------------------------------- |
-| 0 Problem         | [problem.md](problem.md)                                                               | Draft       | G0              | —                        | Masalah per role                                  |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Draft       | G1              | —                        | K1–K8 dipilih Owner; OAuth, host, K9, K10 terbuka |
-| 2 PRD             | [product.md](product.md)                                                               | Draft       | G2              | —                        | AC v1–v3 direncanakan                             |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Draft       | G3              | —                        | Phase v1–v3; perlu pemecahan auth sebelum Build   |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Draft       | bagian G2       | —                        | Katalog tool dan matriks; bukan kontrak runtime   |
-| 4 Build           | [phases/](phases/)                                                                     | Belum mulai | dalam window G3 | —                        | Tidak diotorisasi                                 |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                        | Belum ada evidence MCP                            |
-| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                        | Belum ada deploy                                  |
+| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal | Catatan                                         |
+| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | ------------------------ | ----------------------------------------------- |
+| 0 Problem         | [problem.md](problem.md)                                                               | Draft       | G0              | —                        | Masalah per role                                |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Draft       | G1              | —                        | K1–K10 dipilih Owner; OAuth dan host terbuka    |
+| 2 PRD             | [product.md](product.md)                                                               | Draft       | G2              | —                        | AC v1–v3 direncanakan                           |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Draft       | G3              | —                        | Phase v1–v3; perlu pemecahan auth sebelum Build |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Draft       | bagian G2       | —                        | Katalog tool dan matriks; bukan kontrak runtime |
+| 4 Build           | [phases/](phases/)                                                                     | Belum mulai | dalam window G3 | —                        | Tidak diotorisasi                               |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                        | Belum ada evidence MCP                          |
+| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                        | Belum ada deploy                                |
 
 ## 1. Tujuan dan Pengguna
 

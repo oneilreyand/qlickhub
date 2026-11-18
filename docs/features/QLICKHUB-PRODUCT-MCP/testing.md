@@ -14,7 +14,7 @@
 | AC-3.3 | P3    | E3 injected transactional failure, 0 partial records              | Belum diuji |
 | AC-3.4 | P3    | E3 audit actor/channel, inspeksi log secret-free                  | Belum diuji |
 | AC-4.1 | P4    | E4 login, preview, explicit publish di setiap client              | Belum diuji |
-| AC-5.1 | P6    | E3 spesialisasi cocok/tidak, tanpa poin selama K9 terbuka         | Belum diuji |
+| AC-5.1 | P6    | E3 spesialisasi cocok/tidak, tanpa poin (K9 = a)                  | Belum diuji |
 | AC-5.2 | P6    | E3 hasil = assignment-preview, tidak memblokir, redaksi AUTH-011  | Belum diuji |
 | AC-6.1 | P7    | E3 Dev/QA task terkait vs tidak terkait (403 tanpa isi)           | Belum diuji |
 | AC-6.2 | P7    | E3 antrean = my-work-queue per Workspace                          | Belum diuji |

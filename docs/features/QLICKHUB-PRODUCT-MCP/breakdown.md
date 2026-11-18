@@ -36,7 +36,7 @@ docs:completeness.
 | P9    | Prompts per role (K8) + UAT Tier B            | MCP prompts yang menautkan SSoT                                        | Panduan setup                          | E4 Claude/Codex/Antigravity; catat OpenCode/Gemini CLI         | Setelah P7; estimasi WRA 5                                  |
 
 Ini roadmap dependency, bukan fase yang telah Ready. Estimasi WRA P6–P9 dihitung ulang sebelum G3.
-Tool bug Developer (`report_own_bug`) dan tiket Support menunggu BUG-INTAKE-SLA; K9/K10 menunggu Owner. Auth/publish tidak dipaksa menjadi WRA ≤8
+Tool bug Developer (`report_own_bug`) dan tiket Support menunggu BUG-INTAKE-SLA; K9 dan K10 diputuskan opsi a (tanpa perubahan authorization). Auth/publish tidak dipaksa menjadi WRA ≤8
 dengan mengabaikan persistence atau UAT. Breakdown task rinci dan WRA setiap slice menjadi syarat G3.
 
 ## Change Impact Map dan berkas calon

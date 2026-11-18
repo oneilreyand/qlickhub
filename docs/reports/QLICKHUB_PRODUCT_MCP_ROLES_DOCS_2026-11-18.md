@@ -11,8 +11,8 @@ Dokumen Feature kini memuat katalog tool per role yang dipetakan ke endpoint/ser
 `origin/main` @ `e710d525`, matriks authorization tool × role, jalur Owner/Admin, PO, Developer,
 QA, dan Leader (baru), REQ/AC v1–v3, phase P6–P9, rencana uji, setup client Tier B (OpenCode,
 Gemini CLI, belum diuji), dan urutan rilis. Pilihan Owner K1–K8 tercatat di `solution.md`.
-Saat verifikasi muncul dua keputusan baru yang tidak diputuskan: K9 (PO melihat beban poin saat
-assign) dan K10 (Developer menambah tautan Task). G0–G3 tetap Draft; runtime MCP belum dibuat.
+Saat verifikasi muncul dua keputusan baru, K9 (PO melihat beban poin saat assign) dan K10
+(Developer menambah tautan Task); Owner kemudian memilih opsi a untuk keduanya. G0–G3 tetap Draft; runtime MCP belum dibuat.
 
 ## Work assurance
 
@@ -52,7 +52,7 @@ assign) dan K10 (Developer menambah tautan Task). G0–G3 tetap Draft; runtime M
   ADR-041, ADR-043, ADR-044, ADR-045 — hanya ditautkan, tidak diubah. Tidak ada perubahan fungsi,
   kontrak executable, authorization aktif, UI, migration, atau release.
 - **Decision Snapshot:** K1–K8 dengan pro/kontra di `solution.md`; Owner memilih seluruh
-  rekomendasi. K9 dan K10 dicatat sebagai keputusan terbuka dengan fakta dan alternatif.
+  rekomendasi. K9 dan K10 dicatat dengan fakta dan alternatif; Owner memilih opsi a untuk keduanya.
 - **Agent handoff and independent verification:** belum ada verifier independen. Sumber primer:
   baseline, diff worktree, route/service files, dan output perintah.
 - **Quality review:** reuse — katalog memetakan setiap tool ke service yang ada, tidak ada aturan
@@ -70,8 +70,8 @@ assign) dan K10 (Developer menambah tautan Task). G0–G3 tetap Draft; runtime M
 - **Policy IDs:** DOC-005, DOC-006, SDLC-001, AUTH-001, AUTH-002, AUTH-011, FLOW-007, AI-001,
   AI-006, AI-007, AI-009, AI-013, CONTRACT-001, TEST-001.
 - **Data/interface impact:** None.
-- **Authorization impact:** None aktif; matriks adalah usulan. K9/K10 akan menjadi perubahan
-  authorization tersendiri bila dipilih.
+- **Authorization impact:** None aktif; matriks adalah usulan. K9 dan K10 dipilih opsi a, sehingga
+  tidak ada perubahan authorization.
 - **Migration risk:** None.
 
 ## Changed files
@@ -109,14 +109,15 @@ Node v22.23.4, database N/A.
 - Entri baseline `endpoint:GET /v1/leader/timeline` (DS-R01) kini terdokumentasi lewat
   `contracts.md`. `npm run docs:baseline -- --shrink` mengubah `quality/doc-baseline.json`, di luar
   path Approval Window; Owner dapat menjalankannya di PR ini atau PR berikutnya.
-- OAuth provider, registrasi client, host, ADR Apply dan write agent (K3), K9, K10 masih terbuka.
+- OAuth provider, registrasi client, host, dan ADR Apply/write agent (K3) masih terbuka. K9 dan
+  K10 diputuskan opsi a pada pembaruan kedua, 2026-11-18.
 - Kompatibilitas client Tier A/B belum diuji; tidak ada klaim kompatibilitas.
 - Tool bug Developer dan tiket Support menunggu BUG-INTAKE-SLA.
 
 ## Human decision summary
 
-Owner memilih K1–K8 sesuai rekomendasi dan meminta PR ditahan. Keputusan berikutnya: K9, K10,
-lalu spike OAuth/host (Opsi 2) sebelum G1–G3.
+Owner memilih K1–K8 sesuai rekomendasi dan meminta PR ditahan. Pembaruan kedua: K9 = a dan K10 = a;
+spike OAuth/host (Opsi 2) disetujui sebagai langkah berikutnya sebelum G1–G3.
 
 ## TODO update
 

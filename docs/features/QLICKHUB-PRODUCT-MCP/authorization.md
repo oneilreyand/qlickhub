@@ -30,7 +30,7 @@ route dan tetap berlaku.
 | Bug: buat, retest, reopen                            | Ya (buat, reopen)             | Tidak           | Tidak (lihat BUG-INTAKE) | Ya                              | `assertCanCreateBug` Owner/Admin/QA                                        |
 | Test case, run, hasil, evidence                      | Tidak                         | Tidak           | Tidak                    | Ya                              | `testManagementRoutes.ts` qa                                               |
 | Ringkasan Leader                                     | Ya                            | Tidak           | Tidak                    | Tidak                           | `leaderPipeline.ts`, `leaderService.ts`: Owner/Admin                       |
-| Beban poin/kapasitas orang lain                      | Ya (Leader)                   | Tidak (K9)      | Tidak                    | Tidak                           | `personalCapacity.ts`: pemilik akun atau Owner/Admin Workspace sama        |
+| Beban poin/kapasitas orang lain                      | Ya (Leader)                   | Tidak (K9 = a)  | Tidak                    | Tidak                           | `personalCapacity.ts`: pemilik akun atau Owner/Admin Workspace sama        |
 | Sign-off, rilis, governance, delete, anggota, deploy | Tidak lewat MCP               | Tidak lewat MCP | Tidak lewat MCP          | Tidak lewat MCP                 | K6; tetap di UI                                                            |
 
 Tool tiket Support belum ada karena role `support` masih menunggu BUG-INTAKE-SLA D3.
