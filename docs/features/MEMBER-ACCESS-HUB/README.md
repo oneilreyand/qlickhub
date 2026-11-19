@@ -9,16 +9,16 @@ Halaman Anggota & Akses lintas Workspace untuk Owner/Admin, status undangan, tem
 
 ## Stage Tracker
 
-| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal       | Catatan                              |
-| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | ------------------------------ | ------------------------------------ |
-| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui   | G0              | Owner melalui chat, 2026-11-17 | Program WORK-VISIBILITY              |
-| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui   | G1              | Owner melalui chat, 2026-11-17 | ADR: [ADR 046](../../adr/README.md)  |
-| 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | Owner melalui chat, 2026-11-17 |                                      |
-| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner melalui chat, 2026-11-17 | Jalur: Penuh                         |
-| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | Owner melalui chat, 2026-11-17 |                                      |
-| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                              | P1 kandidat lokal; P2–P6 belum mulai |
-| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                              | Verifier: CI + review independen     |
-| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                              |                                      |
+| Tahap             | Dokumen                                                                                | Status      | Gerbang         | Disetujui oleh / tanggal       | Catatan                                             |
+| ----------------- | -------------------------------------------------------------------------------------- | ----------- | --------------- | ------------------------------ | --------------------------------------------------- |
+| 0 Problem         | [problem.md](problem.md)                                                               | Disetujui   | G0              | Owner melalui chat, 2026-11-17 | Program WORK-VISIBILITY                             |
+| 1 Opsi Solusi     | [solution.md](solution.md)                                                             | Disetujui   | G1              | Owner melalui chat, 2026-11-17 | ADR: [ADR 046](../../adr/README.md)                 |
+| 2 PRD             | [product.md](product.md)                                                               | Disetujui   | G2              | Owner melalui chat, 2026-11-17 |                                                     |
+| 3 Breakdown       | [breakdown.md](breakdown.md)                                                           | Disetujui   | G3              | Owner melalui chat, 2026-11-17 | Jalur: Penuh                                        |
+| (shared)          | [contracts.md](contracts.md) · [authorization.md](authorization.md) · [roles/](roles/) | Disetujui   | bagian G2       | Owner melalui chat, 2026-11-17 |                                                     |
+| 4 Build           | [phases/](phases/)                                                                     | Draft       | dalam window G3 | —                              | P1–P3 di main; P6 kandidat lokal; P4–P5 belum mulai |
+| 5 Test & Review   | [testing.md](testing.md)                                                               | Belum mulai | G5              | —                              | Verifier: CI + review independen                    |
+| 6 Release & Close | [release.md](release.md)                                                               | Belum mulai | G6              | —                              |                                                     |
 
 Status tahap: `Belum mulai`, `Draft`, `Menunggu persetujuan`, `Disetujui`, `Blocked`, `Selesai`.
 

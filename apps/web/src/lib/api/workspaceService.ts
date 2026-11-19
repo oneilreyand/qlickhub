@@ -17,6 +17,8 @@ import {
   UpdateWorkCalendarInput,
   WorkspaceHoliday,
   CreateWorkspaceHolidayInput,
+  WorkspaceActivityItem,
+  WorkspaceActivityListResponse,
 } from '@qlick/contracts';
 
 export type WorkspaceItem = Omit<WorkspaceWithRole, 'allowQaTaskCreation' | 'role'> & {
@@ -72,6 +74,14 @@ export const workspaceService = {
       body: JSON.stringify(input),
     });
     return res.data;
+  },
+
+  /** MEMBER-ACCESS-HUB P6: membership audit log (newest first). */
+  async getMembershipActivities(workspaceId: string): Promise<WorkspaceActivityItem[]> {
+    const res = await apiClient<{ data: WorkspaceActivityListResponse }>(
+      `/workspaces/${workspaceId}/activities?entityType=workspace_membership&limit=50`,
+    );
+    return res.data.activities;
   },
 
   async getMembers(workspaceId: string): Promise<WorkspaceMemberItem[]> {

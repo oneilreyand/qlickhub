@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchWorkspaces,
@@ -31,7 +32,11 @@ import {
   InviteMemberModal,
   AdminResetPasswordModal,
   WorkCalendarSettings,
+  WorkspaceAuditLog,
 } from '../features/workspaces';
+import { resolveSettingsTab, visibleSettingsTabs } from '../features/workspaces/settingsTabs';
+import { MyCapacitySettings } from '../features/capacity/MyCapacitySettings';
+import { Tabs } from '../components/ui/molecules/Tabs';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { Button } from '../components/ui/atoms/Button';
 import { Input } from '../components/ui/atoms/Input';
@@ -89,6 +94,10 @@ export const WorkspaceSettingsPage: React.FC = () => {
   } | null>(null);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
 
+  // MEMBER-ACCESS-HUB P6: capacity & time-off of another member (Owner/Admin)
+  const [capacityTarget, setCapacityTarget] = useState<WorkspaceMemberItem | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const loadQaAssuranceRollout = useCallback(async (workspaceId: string) => {
     setIsQaAssuranceRolloutLoading(true);
     setQaAssuranceRolloutError(null);
@@ -134,6 +143,20 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const isArchived = Boolean(activeWorkspace?.archivedAt);
   const canArchiveWorkspace = userRole === 'owner';
   const canDeleteWorkspace = canArchiveWorkspace && isArchived;
+  const tabAccess = { canManageMembers, canArchiveWorkspace };
+  const settingsTabs = visibleSettingsTabs(tabAccess);
+  const activeTab = resolveSettingsTab(searchParams.get('tab'), tabAccess);
+  const handleTabChange = (tabId: string) => {
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (tabId === 'umum') next.delete('tab');
+        else next.set('tab', tabId);
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   const handleSaveQaAssuranceRollout = async (input: {
     mode: QaAssuranceRolloutSettings['mode'];
@@ -455,61 +478,39 @@ export const WorkspaceSettingsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Grid: Details & Members */}
-      <div className="grid gap-8 lg:grid-cols-12">
-        {/* Left Column: Workspace Profile Form & QA Policy */}
-        <div className="lg:col-span-4 space-y-6">
-          <WorkspaceGeneralSettingsForm
-            workspaceName={workspaceName}
-            workspaceDesc={workspaceDesc}
-            onNameChange={setWorkspaceName}
-            onDescChange={setWorkspaceDesc}
-            onSubmit={handleSaveDetails}
-            isSaving={isSavingDetails}
-            canManage={canManageMembers && !isArchived}
-          />
+      <Tabs
+        tabs={settingsTabs}
+        activeTabId={activeTab}
+        onChange={handleTabChange}
+        ariaLabel="Bagian pengaturan workspace"
+      />
 
-          <WorkspaceTaskPolicyCard
-            allowQaTaskCreation={allowQaTaskCreation}
-            canManage={canManageMembers && !isArchived}
-            isUpdating={isUpdatingPolicy}
-            onToggle={(checked) => void handleToggleQaPolicy(checked)}
-          />
+      <div role="tabpanel" aria-label={settingsTabs.find((tab) => tab.id === activeTab)?.label}>
+        {activeTab === 'umum' && (
+          <div className="max-w-2xl">
+            <WorkspaceGeneralSettingsForm
+              workspaceName={workspaceName}
+              workspaceDesc={workspaceDesc}
+              onNameChange={setWorkspaceName}
+              onDescChange={setWorkspaceDesc}
+              onSubmit={handleSaveDetails}
+              isSaving={isSavingDetails}
+              canManage={canManageMembers && !isArchived}
+            />
+          </div>
+        )}
 
-          <WorkCalendarSettings
-            key={activeWorkspace.id}
-            workspaceId={activeWorkspace.id}
-            canManage={canManageMembers && !isArchived}
-          />
+        {activeTab === 'kalender' && (
+          <div className="max-w-2xl">
+            <WorkCalendarSettings
+              key={activeWorkspace.id}
+              workspaceId={activeWorkspace.id}
+              canManage={canManageMembers && !isArchived}
+            />
+          </div>
+        )}
 
-          <QaAssuranceRolloutCard
-            settings={qaAssuranceRollout}
-            isLoading={isQaAssuranceRolloutLoading}
-            error={qaAssuranceRolloutError}
-            canManage={canManageMembers && !isArchived}
-            isSaving={isSavingQaAssuranceRollout}
-            onRetry={() => void loadQaAssuranceRollout(activeWorkspace.id)}
-            onSave={(input) => void handleSaveQaAssuranceRollout(input)}
-          />
-          {canArchiveWorkspace && (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={isArchived ? 'secondary' : 'destructive'}
-                onClick={() => setIsArchiveModalOpen(true)}
-              >
-                {isArchived ? 'Pulihkan Workspace' : 'Arsipkan Workspace'}
-              </Button>
-              {canDeleteWorkspace && (
-                <Button variant="destructive" onClick={() => setIsDeleteWorkspaceModalOpen(true)}>
-                  Hapus Permanen
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Member Management Table */}
-        <div className="lg:col-span-8 space-y-6">
+        {activeTab === 'anggota' && (
           <WorkspaceMembersTable
             members={members}
             isLoading={isMembersLoading}
@@ -535,9 +536,73 @@ export const WorkspaceSettingsPage: React.FC = () => {
               setResetTargetUser(user);
               setNewMemberPassword('');
             }}
+            onCapacityClick={setCapacityTarget}
           />
-        </div>
+        )}
+
+        {activeTab === 'alur' && (
+          <div className="max-w-2xl">
+            <WorkspaceTaskPolicyCard
+              allowQaTaskCreation={allowQaTaskCreation}
+              canManage={canManageMembers && !isArchived}
+              isUpdating={isUpdatingPolicy}
+              onToggle={(checked) => void handleToggleQaPolicy(checked)}
+            />
+          </div>
+        )}
+
+        {activeTab === 'qa' && (
+          <div className="max-w-2xl">
+            <QaAssuranceRolloutCard
+              settings={qaAssuranceRollout}
+              isLoading={isQaAssuranceRolloutLoading}
+              error={qaAssuranceRolloutError}
+              canManage={canManageMembers && !isArchived}
+              isSaving={isSavingQaAssuranceRollout}
+              onRetry={() => void loadQaAssuranceRollout(activeWorkspace.id)}
+              onSave={(input) => void handleSaveQaAssuranceRollout(input)}
+            />
+          </div>
+        )}
+
+        {activeTab === 'audit' && (
+          <div className="max-w-3xl">
+            <WorkspaceAuditLog key={activeWorkspace.id} workspaceId={activeWorkspace.id} />
+          </div>
+        )}
+
+        {activeTab === 'bahaya' && (
+          <section className="max-w-2xl space-y-3 rounded-2xl border border-red-200 bg-red-50/40 p-5 dark:border-red-900/60 dark:bg-red-950/20">
+            <h2 className="text-sm font-bold text-red-800 dark:text-red-300">Zona bahaya</h2>
+            <p className="text-xs text-stone-600 dark:text-stone-400">
+              {isArchived
+                ? 'Workspace diarsipkan. Pulihkan agar tim bisa bekerja lagi, atau hapus permanen beserta seluruh datanya.'
+                : 'Mengarsipkan membuat workspace hanya bisa dilihat. Hapus permanen hanya tersedia setelah workspace diarsipkan.'}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={isArchived ? 'secondary' : 'destructive'}
+                onClick={() => setIsArchiveModalOpen(true)}
+              >
+                {isArchived ? 'Pulihkan Workspace' : 'Arsipkan Workspace'}
+              </Button>
+              {canDeleteWorkspace && (
+                <Button variant="destructive" onClick={() => setIsDeleteWorkspaceModalOpen(true)}>
+                  Hapus Permanen
+                </Button>
+              )}
+            </div>
+          </section>
+        )}
       </div>
+
+      <Modal
+        isOpen={capacityTarget !== null}
+        onClose={() => setCapacityTarget(null)}
+        title={`Kapasitas & cuti ${capacityTarget?.user?.name || capacityTarget?.user?.email || ''}`.trim()}
+      >
+        {capacityTarget && <MyCapacitySettings userId={capacityTarget.userId} />}
+      </Modal>
 
       {/* Invite Member Modal */}
       <InviteMemberModal

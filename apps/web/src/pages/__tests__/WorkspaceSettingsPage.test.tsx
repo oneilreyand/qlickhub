@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Provider } from 'react-redux';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { WorkspaceSettingsPage } from '../WorkspaceSettingsPage';
 import workspaceReducer from '../../store/workspaceSlice';
@@ -13,6 +14,7 @@ import {
   WorkspaceMemberItem,
 } from '../../lib/api/workspaceService';
 import { authService } from '../../lib/api/authService';
+import { personalCapacityService } from '../../lib/api/personalCapacityService';
 
 vi.mock('../../lib/api/workspaceService', () => ({
   workspaceService: {
@@ -27,7 +29,18 @@ vi.mock('../../lib/api/workspaceService', () => ({
     updateMemberRole: vi.fn(),
     removeMember: vi.fn(),
     getQaAssuranceRollout: vi.fn(),
+    getMembershipActivities: vi.fn(),
     updateQaAssuranceRollout: vi.fn(),
+  },
+}));
+
+vi.mock('../../lib/api/personalCapacityService', () => ({
+  personalCapacityService: {
+    getMine: vi.fn(),
+    getForUser: vi.fn(),
+    updateForUser: vi.fn(),
+    addTimeOffForUser: vi.fn(),
+    removeTimeOffForUser: vi.fn(),
   },
 }));
 
@@ -134,7 +147,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     const store = createMockStore();
     render(
       <Provider store={store}>
-        <WorkspaceSettingsPage />
+        <MemoryRouter initialEntries={['/workspaces/settings?tab=bahaya']}>
+          <WorkspaceSettingsPage />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -169,7 +184,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     const store = createMockStore();
     render(
       <Provider store={store}>
-        <WorkspaceSettingsPage />
+        <MemoryRouter initialEntries={['/workspaces/settings?tab=bahaya']}>
+          <WorkspaceSettingsPage />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -199,7 +216,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     const store = createMockStore(mockArchivedWorkspace);
     render(
       <Provider store={store}>
-        <WorkspaceSettingsPage />
+        <MemoryRouter initialEntries={['/workspaces/settings?tab=bahaya']}>
+          <WorkspaceSettingsPage />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -228,7 +247,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     const store = createMockStore(mockArchivedWorkspace);
     render(
       <Provider store={store}>
-        <WorkspaceSettingsPage />
+        <MemoryRouter initialEntries={['/workspaces/settings?tab=bahaya']}>
+          <WorkspaceSettingsPage />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -268,7 +289,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     const store = createMockStore();
     render(
       <Provider store={store}>
-        <WorkspaceSettingsPage />
+        <MemoryRouter initialEntries={['/workspaces/settings?tab=anggota']}>
+          <WorkspaceSettingsPage />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -300,7 +323,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     const store = createMockStore();
     render(
       <Provider store={store}>
-        <WorkspaceSettingsPage />
+        <MemoryRouter initialEntries={['/workspaces/settings?tab=anggota']}>
+          <WorkspaceSettingsPage />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -334,7 +359,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     const store = createMockStore();
     render(
       <Provider store={store}>
-        <WorkspaceSettingsPage />
+        <MemoryRouter initialEntries={['/workspaces/settings?tab=qa']}>
+          <WorkspaceSettingsPage />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -365,7 +392,9 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     const store = createMockStore(developerWorkspace);
     render(
       <Provider store={store}>
-        <WorkspaceSettingsPage />
+        <MemoryRouter initialEntries={['/workspaces/settings?tab=qa']}>
+          <WorkspaceSettingsPage />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -415,7 +444,9 @@ describe('WorkspaceSettingsPage Loading and Initial Refresh Guard', () => {
 
     render(
       <Provider store={store}>
-        <WorkspaceSettingsPage />
+        <MemoryRouter initialEntries={['/workspaces/settings']}>
+          <WorkspaceSettingsPage />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -463,7 +494,9 @@ describe('WorkspaceSettingsPage Loading and Initial Refresh Guard', () => {
 
     render(
       <Provider store={store}>
-        <WorkspaceSettingsPage />
+        <MemoryRouter initialEntries={['/workspaces/settings']}>
+          <WorkspaceSettingsPage />
+        </MemoryRouter>
       </Provider>,
     );
 
@@ -471,5 +504,125 @@ describe('WorkspaceSettingsPage Loading and Initial Refresh Guard', () => {
     expect(
       await screen.findByRole('heading', { name: /buat workspace pertama/i }),
     ).toBeInTheDocument();
+  });
+});
+
+const LocationProbe = () => {
+  const location = useLocation();
+  return <output data-testid="location">{location.search}</output>;
+};
+
+function renderSettings(store = createMockStore(), entry = '/workspaces/settings') {
+  return render(
+    <Provider store={store}>
+      <MemoryRouter initialEntries={[entry]}>
+        <WorkspaceSettingsPage />
+        <LocationProbe />
+      </MemoryRouter>
+    </Provider>,
+  );
+}
+
+describe('WorkspaceSettingsPage tabs (MEMBER-ACCESS-HUB P6)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(workspaceService.getWorkspaces).mockResolvedValue([mockActiveWorkspace]);
+    vi.mocked(workspaceService.getMembers).mockResolvedValue(mockMembers);
+    vi.mocked(workspaceService.getQaAssuranceRollout).mockImplementation(
+      () => new Promise(() => {}),
+    );
+  });
+
+  it('shows all seven tabs to the Owner, opens Umum by default and keeps the active tab in the URL', async () => {
+    renderSettings();
+
+    const tablist = screen.getByRole('tablist', { name: 'Bagian pengaturan workspace' });
+    expect(
+      within(tablist)
+        .getAllByRole('tab')
+        .map((tab) => tab.textContent),
+    ).toEqual([
+      'Umum',
+      'Kalender & Kapasitas',
+      'Anggota',
+      'Alur & Kebijakan',
+      'QA',
+      'Log Audit',
+      'Zona Bahaya',
+    ]);
+    expect(screen.getByRole('tabpanel', { name: 'Umum' })).toBeInTheDocument();
+    expect(screen.queryByText('Bob Developer')).not.toBeInTheDocument();
+
+    fireEvent.click(within(tablist).getByRole('tab', { name: 'Anggota' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('?tab=anggota');
+    expect((await screen.findAllByText('Bob Developer')).length).toBeGreaterThan(0);
+
+    fireEvent.click(within(tablist).getByRole('tab', { name: 'Umum' }));
+    expect(screen.getByTestId('location')).toBeEmptyDOMElement();
+  });
+
+  it('hides Log Audit and Zona Bahaya from a Developer and falls back to Umum for them', () => {
+    const developerWorkspace: WorkspaceItem = { ...mockActiveWorkspace, role: 'dev' };
+    renderSettings(createMockStore(developerWorkspace), '/workspaces/settings?tab=bahaya');
+
+    const tablist = screen.getByRole('tablist', { name: 'Bagian pengaturan workspace' });
+    expect(within(tablist).queryByRole('tab', { name: 'Log Audit' })).not.toBeInTheDocument();
+    expect(within(tablist).queryByRole('tab', { name: 'Zona Bahaya' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tabpanel', { name: 'Umum' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Arsipkan Workspace' })).not.toBeInTheDocument();
+  });
+
+  it('lets the Owner open capacity and time off of another member through /users/:id', async () => {
+    vi.mocked(personalCapacityService.getForUser).mockResolvedValue({
+      userId: '00000000-0000-4000-8000-000000000002',
+      weeklyPoints: 10,
+      effectiveWeeklyPoints: 10,
+      source: 'override',
+      timeOff: [],
+      canEdit: true,
+    });
+    renderSettings(createMockStore(), '/workspaces/settings?tab=anggota');
+
+    const buttons = await screen.findAllByRole('button', {
+      name: 'Kapasitas & cuti Bob Developer',
+    });
+    fireEvent.click(buttons[0]);
+
+    expect(
+      await screen.findByRole('dialog', { name: 'Kapasitas & cuti Bob Developer' }),
+    ).toBeInTheDocument();
+    expect(personalCapacityService.getForUser).toHaveBeenCalledWith('user-dev');
+    expect(personalCapacityService.getMine).not.toHaveBeenCalled();
+    expect(await screen.findByLabelText('Poin per minggu')).toHaveValue(10);
+  });
+
+  it('renders the membership audit log with readable sentences', async () => {
+    vi.mocked(workspaceService.getMembershipActivities).mockResolvedValue([
+      {
+        id: 'act-1',
+        entityType: 'workspace_membership',
+        entityId: 'mem-2',
+        entityTitle: 'Bob Developer',
+        actorName: 'Alice Owner',
+        action: 'member_role_updated',
+        metadataJson: { previousRole: 'qa', newRole: 'dev' },
+        createdAt: '2026-11-18T03:00:00.000Z',
+      },
+      {
+        id: 'act-2',
+        entityType: 'workspace_membership',
+        entityId: 'mem-3',
+        entityTitle: 'cara@qlick.test',
+        actorName: 'Alice Owner',
+        action: 'member_removed',
+        metadataJson: { reason: 'invitation_canceled' },
+        createdAt: '2026-11-18T02:00:00.000Z',
+      },
+    ] as never);
+    renderSettings(createMockStore(), '/workspaces/settings?tab=audit');
+
+    expect(await screen.findByText(/mengubah peran menjadi Developer untuk/i)).toBeInTheDocument();
+    expect(screen.getByText(/membatalkan undangan/i)).toBeInTheDocument();
+    expect(workspaceService.getMembershipActivities).toHaveBeenCalledWith('ws-1');
   });
 });

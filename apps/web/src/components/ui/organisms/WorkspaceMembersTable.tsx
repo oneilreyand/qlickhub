@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserPlus, Shield, Trash2, Key, Settings2 } from 'lucide-react';
+import { Users, UserPlus, Shield, Trash2, Key, Settings2, Gauge } from 'lucide-react';
 import { AssignableWorkspaceRole, DeveloperSpecialty } from '@qlick/contracts';
 import { Card } from '../atoms/Card';
 import { Button } from '../atoms/Button';
@@ -34,6 +34,8 @@ export interface WorkspaceMembersTableProps {
   onSearchChange: (query: string) => void;
   onInviteClick: () => void;
   onManageAccess?: (member: WorkspaceMemberItem) => void;
+  /** MEMBER-ACCESS-HUB P6: open capacity & time off of a member (Owner/Admin). */
+  onCapacityClick?: (member: WorkspaceMemberItem) => void;
   onRoleChange: (memberUserId: string, newRole: AssignableWorkspaceRole) => void;
   onSpecialtiesChange?: (memberUserId: string, specialties: DeveloperSpecialty[]) => void;
   onRemoveMember: (memberUserId: string, memberEmail: string) => void;
@@ -49,6 +51,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
   onSearchChange,
   onInviteClick,
   onManageAccess = () => undefined,
+  onCapacityClick,
   onRoleChange,
   onSpecialtiesChange,
   onRemoveMember,
@@ -221,6 +224,17 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                         aria-label="Kelola akses Workspace"
                       >
                         <Settings2 className="h-4 w-4 text-stone-500" />
+                      </Button>
+                    )}
+                    {canManageMembers && onCapacityClick && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onCapacityClick(member)}
+                        title="Kapasitas & cuti"
+                        aria-label={`Kapasitas & cuti ${u?.name || u?.email || 'anggota'}`}
+                      >
+                        <Gauge className="h-4 w-4 text-stone-500" />
                       </Button>
                     )}
                     {canResetMemberPassword(member.role) && (
@@ -408,6 +422,17 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                               aria-label="Kelola akses Workspace"
                             >
                               <Settings2 className="h-4 w-4 text-stone-500" />
+                            </Button>
+                          )}
+                          {canManageMembers && onCapacityClick && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onCapacityClick(member)}
+                              title="Kapasitas & cuti"
+                              aria-label={`Kapasitas & cuti ${u?.name || u?.email || 'anggota'}`}
+                            >
+                              <Gauge className="h-4 w-4 text-stone-500" />
                             </Button>
                           )}
                           {canResetMemberPassword(member.role) && (

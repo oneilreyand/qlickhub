@@ -1,12 +1,36 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CreateUserTimeOffInput, UserCapacity } from '@qlick/contracts';
 import { PersonalCapacityPanel } from '../../components/ui/organisms/PersonalCapacityPanel';
 import { personalCapacityService } from '../../lib/api/personalCapacityService';
 import { useAppDispatch } from '../../store/hooks';
 import { enqueueSnackbar } from '../../store/uiSlice';
 
-/** WORK-FOUNDATION P4: loads and saves the caller's own capacity and time off. */
-export const MyCapacitySettings: React.FC = () => {
+/**
+ * WORK-FOUNDATION P4: loads and saves capacity and time off — the caller's own, or (MEMBER-ACCESS-HUB
+ * P6) someone else's when `userId` is given; the backend enforces AUTH-015.
+ */
+export const MyCapacitySettings: React.FC<{ userId?: string }> = ({ userId }) => {
+  const api = useMemo(
+    () =>
+      userId
+        ? {
+            get: () => personalCapacityService.getForUser(userId),
+            update: (input: { weeklyPoints: number | null }) =>
+              personalCapacityService.updateForUser(userId, input),
+            addTimeOff: (input: CreateUserTimeOffInput) =>
+              personalCapacityService.addTimeOffForUser(userId, input),
+            removeTimeOff: (id: string) => personalCapacityService.removeTimeOffForUser(userId, id),
+          }
+        : {
+            get: () => personalCapacityService.getMine(),
+            update: (input: { weeklyPoints: number | null }) =>
+              personalCapacityService.updateMine(input),
+            addTimeOff: (input: CreateUserTimeOffInput) =>
+              personalCapacityService.addMyTimeOff(input),
+            removeTimeOff: (id: string) => personalCapacityService.removeMyTimeOff(id),
+          },
+    [userId],
+  );
   const dispatch = useAppDispatch();
   const [capacity, setCapacity] = useState<UserCapacity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,14 +41,14 @@ export const MyCapacitySettings: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      setCapacity(await personalCapacityService.getMine());
+      setCapacity(await api.get());
     } catch (err) {
       setCapacity(null);
       setError(err instanceof Error ? err.message : 'Kapasitas gagal dimuat.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [api]);
 
   useEffect(() => {
     void load();
@@ -46,7 +70,7 @@ export const MyCapacitySettings: React.FC = () => {
 
   const handleSaveCapacity = async (weeklyPoints: number | null) => {
     const updated = await run(
-      () => personalCapacityService.updateMine({ weeklyPoints }),
+      () => api.update({ weeklyPoints }),
       weeklyPoints === null
         ? 'Kapasitas kembali mengikuti default Workspace.'
         : 'Kapasitas tersimpan.',
@@ -57,7 +81,7 @@ export const MyCapacitySettings: React.FC = () => {
 
   const handleAddTimeOff = async (input: CreateUserTimeOffInput) => {
     const added = await run(
-      () => personalCapacityService.addMyTimeOff(input),
+      () => api.addTimeOff(input),
       'Cuti ditambahkan.',
       'Cuti gagal ditambahkan.',
     );
@@ -78,7 +102,7 @@ export const MyCapacitySettings: React.FC = () => {
   const handleRemoveTimeOff = async (timeOffId: string) => {
     const removed = await run(
       async () => {
-        await personalCapacityService.removeMyTimeOff(timeOffId);
+        await api.removeTimeOff(timeOffId);
         return true;
       },
       'Cuti dihapus.',

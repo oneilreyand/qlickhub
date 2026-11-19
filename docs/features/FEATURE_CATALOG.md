@@ -67,7 +67,7 @@ utama membantu navigasi saja; hak akses dan urutan kerja tetap mengikuti
 
 | Feature                                                               | Pembaca utama   | Tujuan singkat                                         | Status                                   |
 | --------------------------------------------------------------------- | --------------- | ------------------------------------------------------ | ---------------------------------------- |
-| [MEMBER-ACCESS-HUB](MEMBER-ACCESS-HUB/README.md)                      | Owner/Admin     | Anggota & Akses lintas Workspace, akses berbatas waktu | G0–G3 disetujui; P1–P2 di main; P3 lokal |
+| [MEMBER-ACCESS-HUB](MEMBER-ACCESS-HUB/README.md)                      | Owner/Admin     | Anggota & Akses lintas Workspace, akses berbatas waktu | G0–G3 disetujui; P1–P3 di main; P6 lokal |
 | [Discussion Author-Only Mutation](DISCUSSION_AUTHOR_ONLY_MUTATION.md) | Semua role      | Membatasi perubahan Discussion pada penulisnya.        | Active                                   |
 | [Multi-Workspace Member Access](MULTI_WORKSPACE_MEMBER_ACCESS_UX.md)  | Owner/Admin, PO | Akses anggota pada banyak Workspace.                   | Active                                   |
 | [Workspace Permanent Deletion](WORKSPACE_PERMANENT_DELETION.md)       | Owner/Admin     | Penghapusan permanen Workspace dengan guard.           | Active                                   |
