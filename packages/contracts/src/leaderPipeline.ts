@@ -187,3 +187,64 @@ export const LeaderPipelineQuerySchema = z.object({
     .pipe(z.array(z.string().uuid())),
 });
 export type LeaderPipelineQuery = z.infer<typeof LeaderPipelineQuerySchema>;
+
+/**
+ * LEADER-PIPELINE-HUB P6 (ADR-045): flow metrics over Subtasks completed inside the window, from
+ * `tasks.completed_at` and status changes in `task_activity`. Subtasks without recorded status
+ * history are counted in throughput/lead time but left out of cycle and stage times (DATA-005).
+ */
+export const LeaderFlowQuerySchema = z.object({
+  workspaceIds: z
+    .string()
+    .optional()
+    .transform((value) =>
+      value
+        ? value
+            .split(',')
+            .map((id) => id.trim())
+            .filter(Boolean)
+        : [],
+    )
+    .pipe(z.array(z.string().uuid())),
+  timeframe: z.enum(['week', 'month', 'quarter', 'all']).default('month'),
+});
+export type LeaderFlowQuery = z.input<typeof LeaderFlowQuerySchema>;
+
+const DurationStatsSchema = z.object({
+  /** Days, one decimal; null when there is no sample. */
+  medianDays: z.number().nullable(),
+  p85Days: z.number().nullable(),
+  sampleSize: z.number().int().min(0),
+});
+export type LeaderFlowDurationStats = z.infer<typeof DurationStatsSchema>;
+
+export const LeaderFlowStageSchema = z.object({
+  status: z.enum(['todo', 'in_progress', 'in_review', 'changes_requested']),
+  medianDays: z.number().nullable(),
+  sampleSize: z.number().int().min(0),
+});
+export type LeaderFlowStage = z.infer<typeof LeaderFlowStageSchema>;
+
+export const LeaderFlowMetricsSchema = z.object({
+  timeframe: z.enum(['week', 'month', 'quarter', 'all']),
+  from: z.string().nullable(),
+  to: z.string(),
+  /** Throughput: Subtasks completed inside the window. */
+  completed: z.number().int().min(0),
+  throughputByWeek: z.array(
+    z.object({ weekStart: z.string(), count: z.number().int().min(0) }),
+  ),
+  /** Created → done. */
+  leadTime: DurationStatsSchema,
+  /** First move to `in_progress` → done; Subtasks without that event are excluded. */
+  cycleTime: DurationStatsSchema.extend({ withoutStartEvent: z.number().int().min(0) }),
+  stages: z.array(LeaderFlowStageSchema),
+  onTime: z.object({
+    onTime: z.number().int().min(0),
+    late: z.number().int().min(0),
+    withoutDueDate: z.number().int().min(0),
+    /** onTime / (onTime + late) × 100, rounded; null when nothing had a due date. */
+    percent: z.number().nullable(),
+  }),
+});
+export type LeaderFlowMetrics = z.infer<typeof LeaderFlowMetricsSchema>;

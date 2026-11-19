@@ -102,7 +102,7 @@ describe('LeaderHubPage Component', () => {
     expect(screen.getByTestId('mock-leader-timeline')).toBeInTheDocument();
 
     // Click on Quality tab
-    const qualityTabButton = screen.getByText(/Kualitas & Bug/i);
+    const qualityTabButton = screen.getByText(/Alur & Kualitas/i);
     fireEvent.click(qualityTabButton);
     expect(screen.getByTestId('mock-leader-quality')).toBeInTheDocument();
 

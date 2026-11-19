@@ -1,6 +1,13 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Bug, ShieldAlert, RotateCcw, AlertOctagon, RefreshCw, Search } from 'lucide-react';
-import type { LeaderQualityMetricsResponse, LeaderDeveloperQualityItem } from '@qlick/contracts';
+import type {
+  LeaderQualityMetricsResponse,
+  LeaderDeveloperQualityItem,
+  LeaderFlowMetrics,
+  LeaderMetricsTimeframe,
+} from '@qlick/contracts';
+import { Select } from '../../components/ui/atoms/Select';
+import { FlowMetricsPanel } from '../../components/ui/organisms/leaderHub';
 import { leaderService } from '../../lib/api/leaderService';
 import { Badge } from '../../components/ui/atoms/Badge';
 import { Card } from '../../components/ui/atoms/Card';
@@ -15,21 +22,26 @@ export const LeaderQualityTab: React.FC<LeaderQualityTabProps> = ({ workspaceIds
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [timeframe, setTimeframe] = useState<LeaderMetricsTimeframe>('month');
+  const [flow, setFlow] = useState<LeaderFlowMetrics | null>(null);
 
   const fetchQualityMetrics = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await leaderService.getQuality({
-        workspaceIds,
-      });
+      // LEADER-PIPELINE-HUB P6: quality and flow follow the same window.
+      const [res, flowRes] = await Promise.all([
+        leaderService.getQuality({ workspaceIds, timeframe }),
+        leaderService.getFlow(workspaceIds, timeframe),
+      ]);
       setData(res);
+      setFlow(flowRes);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal memuat metrik kualitas');
     } finally {
       setIsLoading(false);
     }
-  }, [workspaceIds]);
+  }, [workspaceIds, timeframe]);
 
   useEffect(() => {
     void fetchQualityMetrics();
@@ -73,6 +85,24 @@ export const LeaderQualityTab: React.FC<LeaderQualityTabProps> = ({ workspaceIds
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <p className="text-xs text-stone-500 dark:text-stone-400">
+          Metrik alur dan kualitas memakai periode yang sama.
+        </p>
+        <div className="w-full sm:w-56">
+          <Select
+            label="Periode"
+            value={timeframe}
+            onChange={(event) => setTimeframe(event.target.value as LeaderMetricsTimeframe)}
+          >
+            <option value="week">7 hari terakhir</option>
+            <option value="month">30 hari terakhir</option>
+            <option value="quarter">90 hari terakhir</option>
+            <option value="all">Semua waktu</option>
+          </Select>
+        </div>
+      </div>
+      {flow && <FlowMetricsPanel metrics={flow} />}
       {/* KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total & Staging */}

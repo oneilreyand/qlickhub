@@ -13,6 +13,7 @@ import type {
   LeaderTimelineTaskItem,
   LeaderDeveloperQualityItem,
 } from '@qlick/contracts';
+import { LEADER_TIMEFRAME_DAYS, LeaderQualityQuerySchema } from '@qlick/contracts';
 import {
   WorkspaceModel,
   WorkspaceMemberModel,
@@ -323,8 +324,18 @@ export class LeaderService {
    */
   async getLeaderQualityMetrics(
     actorId: string,
-    query: LeaderQualityQuery,
+    rawQuery: LeaderQualityQuery,
   ): Promise<LeaderQualityMetricsResponse> {
+    // LEADER-PIPELINE-HUB P6: the timeframe now limits the bugs counted (reported in the window).
+    const query = LeaderQualityQuerySchema.parse(rawQuery);
+    const windowDays = LEADER_TIMEFRAME_DAYS[query.timeframe];
+    const to = new Date();
+    const from = windowDays === null ? null : new Date(to.getTime() - windowDays * 86_400_000);
+    const timeframe = {
+      key: query.timeframe,
+      from: from ? from.toISOString() : null,
+      to: to.toISOString(),
+    };
     const leaderMemberships = await WorkspaceMemberModel.findAll({
       where: {
         userId: actorId,
@@ -354,12 +365,14 @@ export class LeaderService {
           firstTimeRightRate: 100,
         },
         developerMetrics: [],
+        timeframe,
       };
     }
 
     const bugs = await BugModel.findAll({
       where: {
         workspaceId: { [Op.in]: targetWorkspaceIds },
+        ...(from ? { createdAt: { [Op.gte]: from } } : {}),
       },
       include: [{ model: UserModel, as: 'assignee', required: false }],
     });
@@ -468,6 +481,7 @@ export class LeaderService {
         firstTimeRightRate,
       },
       developerMetrics,
+      timeframe,
     };
   }
 
@@ -481,7 +495,10 @@ export class LeaderService {
     const [workspacesRes, timelineRes, qualityRes] = await Promise.all([
       this.getLeaderWorkspaces(actorId),
       this.getLeaderTimeline(actorId, { workspaceIds: query.workspaceIds }),
-      this.getLeaderQualityMetrics(actorId, { workspaceIds: query.workspaceIds }),
+      this.getLeaderQualityMetrics(actorId, {
+        workspaceIds: query.workspaceIds,
+        timeframe: query.type === 'monthly' ? 'month' : 'week',
+      }),
     ]);
 
     const type = query.type || 'weekly';

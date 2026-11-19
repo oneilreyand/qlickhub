@@ -31,7 +31,7 @@ flowchart LR
 | P3    | Beban tim berbasis poin             | AC-3.1         | 7/16 | MWR P2                         | Di main (#140)                          |
 | P4    | Papan hambatan + Ping PIC           | AC-4.1, AC-4.2 | 6/16 | P1                             | Di main (#137, #143)                    |
 | P5    | Realtime                            | AC-5.1         | 6/16 | P2                             | Kandidat lokal                          |
-| P6    | Metrik alur + timeframe kualitas    | AC-6.1         | 6/16 | WF P1                          | Belum mulai                             |
+| P6    | Metrik alur + timeframe kualitas    | AC-6.1         | 6/16 | WF P1                          | Kandidat lokal                          |
 | P7    | Tahap Plan, Verif. Prod, Monitoring | AC-7.1         | 5/16 | SIMPLE-UI                      | Ditunda (SIMPLE-UI P7b/P8b belum mulai) |
 
 ## 2. Task per phase
