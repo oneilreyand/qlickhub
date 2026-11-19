@@ -63,7 +63,7 @@ Lihat [authorization.md](authorization.md).
 
 ## 7. UI dan Interaction States
 
-Tab Ringkasan mengikuti desain `02-leader-hub-ringkasan.webp`; komponen sudah di-slice di `organisms/leaderHub/` (PR #130). Tab Beban kerja, Hambatan, Kualitas, Laporan berkala belum didesain. Desain: [work-visibility/design](../../plans/work-visibility/design/README.md). User flow dan state per layar di [product.md](product.md) §3–§4.
+Tab Ringkasan mengikuti desain `02-leader-hub-ringkasan.webp`; komponen sudah di-slice di `organisms/leaderHub/` (PR #130). Tab Beban kerja, Hambatan, Alur & Kualitas, Laporan berkala, dan Detail Feature sudah didesain (gambar 06–10, 2026-11-19) dan masuk PRD sebagai REQ-8–REQ-12 — menunggu G2. Desain: [work-visibility/design](../../plans/work-visibility/design/README.md). User flow dan state per layar di [product.md](product.md) §3–§4.
 
 ## 8. Pengujian dan Evidence
 

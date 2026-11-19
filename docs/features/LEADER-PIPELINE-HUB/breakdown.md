@@ -24,29 +24,35 @@ flowchart LR
   SUDF["SIMPLE-UI P5b/P7b/P8b"] --> P7["P7 Tahap penuh"]
 ```
 
-| Phase | Tujuan                              | AC             | WRA  | Bergantung                     | Status                                  |
-| ----- | ----------------------------------- | -------------- | ---- | ------------------------------ | --------------------------------------- |
-| P1    | Mesin kesehatan + tahap             | AC-1.1–AC-1.3  | 8/16 | WF P5                          | Di main (#136)                          |
-| P2    | Tab Ringkasan                       | AC-2.1, AC-2.2 | 6/16 | P1; koordinasi LEADER-SDLC-HUB | Di main (#143)                          |
-| P3    | Beban tim berbasis poin             | AC-3.1         | 7/16 | MWR P2                         | Di main (#140)                          |
-| P4    | Papan hambatan + Ping PIC           | AC-4.1, AC-4.2 | 6/16 | P1                             | Di main (#137, #143)                    |
-| P5    | Realtime                            | AC-5.1         | 6/16 | P2                             | Kandidat lokal                          |
-| P6    | Metrik alur + timeframe kualitas    | AC-6.1         | 6/16 | WF P1                          | Kandidat lokal                          |
-| P7    | Tahap Plan, Verif. Prod, Monitoring | AC-7.1         | 5/16 | SIMPLE-UI                      | Ditunda (SIMPLE-UI P7b/P8b belum mulai) |
+| Phase | Tujuan                              | AC               | WRA  | Bergantung                     | Status                                  |
+| ----- | ----------------------------------- | ---------------- | ---- | ------------------------------ | --------------------------------------- |
+| P1    | Mesin kesehatan + tahap             | AC-1.1–AC-1.3    | 8/16 | WF P5                          | Di main (#136)                          |
+| P2    | Tab Ringkasan                       | AC-2.1, AC-2.2   | 6/16 | P1; koordinasi LEADER-SDLC-HUB | Di main (#143)                          |
+| P3    | Beban tim berbasis poin             | AC-3.1           | 7/16 | MWR P2                         | Di main (#140)                          |
+| P4    | Papan hambatan + Ping PIC           | AC-4.1, AC-4.2   | 6/16 | P1                             | Di main (#137, #143)                    |
+| P5    | Realtime                            | AC-5.1           | 6/16 | P2                             | Kandidat lokal                          |
+| P6    | Metrik alur + timeframe kualitas    | AC-6.1           | 6/16 | WF P1                          | Kandidat lokal                          |
+| P7    | Tahap Plan, Verif. Prod, Monitoring | AC-7.1           | 5/16 | SIMPLE-UI                      | Ditunda (SIMPLE-UI P7b/P8b belum mulai) |
+| P8    | Tab Beban kerja                     | AC-8.1, AC-8.2   | 6/16 | P3; G2 tambahan                | Menunggu G2                             |
+| P9    | Tab Hambatan                        | AC-9.1, AC-9.2   | 5/16 | P4; G2 tambahan                | Menunggu G2                             |
+| P10   | Tab Alur & Kualitas                 | AC-10.1, AC-10.2 | 6/16 | P6; G2 tambahan                | Menunggu G2                             |
+| P11   | Tab Laporan berkala                 | AC-11.1, AC-11.2 | 7/16 | P6; G2 tambahan                | Menunggu G2                             |
+| P12   | Detail Feature                      | AC-12.1          | 6/16 | P1; G2 tambahan                | Menunggu G2                             |
 
 ## 2. Task per phase
 
-| Task ID | Layer | Pekerjaan                                                                 | File/path perkiraan                                                    | AC     | Bukti selesai           |
-| ------- | ----- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------ | ----------------------- |
-| P1-BE-1 | BE    | Contract ringkasan Leader; service tahap + kesehatan dengan alasan        | `packages/contracts/src/leader.ts`, `modules/leader/leaderPipeline.ts` | AC-1.x | Integration per kondisi |
-| P2-FE-1 | FE    | Tab Ringkasan memakai `organisms/leaderHub`; mapper contract → view-model | `LeaderHubPage.tsx`, `features/leader/`                                | AC-2.x | Component + E4          |
-| P3-BE-1 | BE    | Ganti aturan beban; pakai mesin beban MY-WORK-REPORT                      | `leaderService.ts`                                                     | AC-3.1 | Integration             |
-| P4-BE-1 | BE    | `POST …/blockers/:id/ping` dengan batas 1 jam                             | `modules/tasks/`                                                       | AC-4.1 | Integration             |
-| P4-FE-1 | FE    | Aksi Ping PIC/Buka                                                        | `OpenBlockersPanel`                                                    | AC-4.x | Component               |
-| P5-FE-1 | FE    | Berlangganan SSE per Workspace yang dipimpin                              | `features/leader/`                                                     | AC-5.1 | Integration/E2          |
-| P6-BE-1 | BE    | Metrik alur; timeframe metrik kualitas                                    | `leaderService.ts`                                                     | AC-6.1 | Integration             |
-| P7-BE-1 | BE    | Pemetaan tahap tambahan                                                   | `leaderPipeline.ts`                                                    | AC-7.1 | Integration             |
-| P*-QA-1 | QA    | Test Case + UAT tiap phase                                                | —                                                                      | semua  | Test Result             |
+| Task ID | Layer | Pekerjaan                                                                                                                                                                                                        | File/path perkiraan                                                    | AC             | Bukti selesai                |
+| ------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------- | ---------------------------- |
+| P1-BE-1 | BE    | Contract ringkasan Leader; service tahap + kesehatan dengan alasan                                                                                                                                               | `packages/contracts/src/leader.ts`, `modules/leader/leaderPipeline.ts` | AC-1.x         | Integration per kondisi      |
+| P2-FE-1 | FE    | Tab Ringkasan memakai `organisms/leaderHub`; mapper contract → view-model                                                                                                                                        | `LeaderHubPage.tsx`, `features/leader/`                                | AC-2.x         | Component + E4               |
+| P3-BE-1 | BE    | Ganti aturan beban; pakai mesin beban MY-WORK-REPORT                                                                                                                                                             | `leaderService.ts`                                                     | AC-3.1         | Integration                  |
+| P4-BE-1 | BE    | `POST …/blockers/:id/ping` dengan batas 1 jam                                                                                                                                                                    | `modules/tasks/`                                                       | AC-4.1         | Integration                  |
+| P4-FE-1 | FE    | Aksi Ping PIC/Buka                                                                                                                                                                                               | `OpenBlockersPanel`                                                    | AC-4.x         | Component                    |
+| P5-FE-1 | FE    | Berlangganan SSE per Workspace yang dipimpin                                                                                                                                                                     | `features/leader/`                                                     | AC-5.1         | Integration/E2               |
+| P6-BE-1 | BE    | Metrik alur; timeframe metrik kualitas                                                                                                                                                                           | `leaderService.ts`                                                     | AC-6.1         | Integration                  |
+| P7-BE-1 | BE    | Pemetaan tahap tambahan                                                                                                                                                                                          | `leaderPipeline.ts`                                                    | AC-7.1         | Integration                  |
+| P8–P12  | FE/BE | Tab baru memakai data yang sudah ada (beban poin P3, hambatan P4, alur/kualitas P6, kesehatan P1); tambahan BE: beban per minggu per anggota, statistik/pola hambatan, kualitas per Feature, isi laporan berkala | `modules/leader/`, `features/leader/`, `organisms/leaderHub/`          | AC-8.x–AC-12.1 | Integration + component + E4 |
+| P*-QA-1 | QA    | Test Case + UAT tiap phase                                                                                                                                                                                       | —                                                                      | semua          | Test Result                  |
 
 WRA ringkas — P1: req 1 · lapisan 2 · data 1 · authz 1 · contract 1 · coupling 1 · validasi 1 · eksternal 0 = 8.
 

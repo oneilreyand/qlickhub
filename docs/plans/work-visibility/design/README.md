@@ -11,21 +11,27 @@ Gambar dirender lokal dari `source/*.dc.html` dengan Chromium/Playwright memakai
 `source/render-export.mjs`, lalu dikonversi ke WebP (kualitas 80). Font Inter dimuat dari Google Fonts
 bila jaringan tersedia. Semua nama, email, angka, dan tanggal di layar adalah contoh.
 
-| File                                    | Artboard canvas                             | Feature           | Desktop 1440 | HP 390        |
-| --------------------------------------- | ------------------------------------------- | ----------------- | ------------ | ------------- |
-| `01-laporan-saya.webp`                  | Laporan Saya                                | MY-WORK-REPORT    | Ada          | Ada           |
-| `02-leader-hub-ringkasan.webp`          | Leader Hub — Ringkasan                      | LEADER-SDLC-HUB   | Ada          | Ada           |
-| `03-anggota-akses.webp`                 | Anggota & Akses                             | MEMBER-ACCESS-HUB | Ada          | Ikuti pola HP |
-| `04-undang-anggota.webp`                | Undang anggota (modal)                      | MEMBER-ACCESS-HUB | Ada (760)    | —             |
-| `05-pengaturan-kalender-kapasitas.webp` | Pengaturan Workspace — Kalender & Kapasitas | WORK-FOUNDATION   | Ada          | Ikuti pola HP |
+| File                                    | Artboard canvas                             | Feature             | Desktop 1440 | HP 390        |
+| --------------------------------------- | ------------------------------------------- | ------------------- | ------------ | ------------- |
+| `01-laporan-saya.webp`                  | Laporan Saya                                | MY-WORK-REPORT      | Ada          | Ada           |
+| `02-leader-hub-ringkasan.webp`          | Leader Hub — Ringkasan                      | LEADER-SDLC-HUB     | Ada          | Ada           |
+| `03-anggota-akses.webp`                 | Anggota & Akses                             | MEMBER-ACCESS-HUB   | Ada          | Ikuti pola HP |
+| `04-undang-anggota.webp`                | Undang anggota (modal)                      | MEMBER-ACCESS-HUB   | Ada (760)    | —             |
+| `05-pengaturan-kalender-kapasitas.webp` | Pengaturan Workspace — Kalender & Kapasitas | WORK-FOUNDATION     | Ada          | Ikuti pola HP |
+| `06-leader-hub-beban-kerja.webp`        | Leader Hub — Beban kerja                    | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
+| `07-leader-hub-hambatan.webp`           | Leader Hub — Hambatan                       | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
+| `08-leader-hub-alur-kualitas.webp`      | Leader Hub — Alur & Kualitas                | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
+| `09-leader-hub-laporan-berkala.webp`    | Leader Hub — Laporan berkala                | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
+| `10-leader-hub-detail-feature.webp`     | Leader Hub — Detail Feature                 | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
 
 Pola HP: Sidebar menjadi menu di atas, kartu turun satu kolom, tabel lebar bergulir horizontal.
 Varian Dark belum dibuat; ikuti pemetaan Light → Dark di
 [SIMPLE-UI-DELIVERY-FLOW/design](../../../features/SIMPLE-UI-DELIVERY-FLOW/design/README.md) dan ADR-034.
 
+Gambar 06–10 diekspor 2026-11-19 dari canvas yang sama (baris "Leader Hub — tab lainnya & detail Feature"); acuan resmi setelah G2 tambahan LEADER-PIPELINE-HUB disetujui.
+
 ## Belum didesain
 
-- Leader Hub: tab Beban kerja, Hambatan, Kualitas, dan Laporan berkala.
 - Panel blocker di detail subtask dan field effort di form subtask.
 - State Loading, Empty, Error, dan Permission denied untuk setiap layar.
 
