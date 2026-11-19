@@ -34,6 +34,9 @@ import { apiRateLimiter } from './http/middleware/rateLimit.js';
 import { assignRequestId, logServerError } from './http/errorLog.js';
 import { rejectArchivedWorkspaceMutation } from './http/middleware/workspaceArchive.js';
 import { configureProxyTrust } from './http/middleware/proxyTrust.js';
+import { readMcpSpikeConfig } from './modules/mcp/mcpSpikeConfig.js';
+import { createDevTokenVerifier } from './modules/mcp/mcpTokenVerifier.js';
+import { createMcpSpikeRouter } from './modules/mcp/mcpRoutes.js';
 
 export const createApp = () => {
   const app = express();
@@ -47,6 +50,11 @@ export const createApp = () => {
   // ADR-040: scheduler routes authenticate with CRON_SECRET and have no browser origin, so they
   // are mounted before the origin check. Every other state-changing route stays behind it.
   app.use('/v1', cronRoutes);
+  // SPIKE (spike/mcp-oauth, never merged): MCP uses bearer tokens, not cookies, so it is mounted
+  // before the browser-origin check like the cron routes. Disabled unless MCP_SPIKE_ENABLED=true
+  // outside production.
+  const mcpSpike = readMcpSpikeConfig();
+  if (mcpSpike.enabled) app.use(createMcpSpikeRouter(mcpSpike, createDevTokenVerifier(mcpSpike)));
   app.use(enforceTrustedOrigin);
 
   // Health Check Endpoint (Includes PostgreSQL DB Check)
