@@ -3,6 +3,7 @@ import { Check, Mail, ShieldCheck, UserRoundPlus, UsersRound } from 'lucide-reac
 import {
   AssignableWorkspaceRole,
   DeveloperSpecialty,
+  RoleTemplate,
   WorkspaceMemberAssignment,
 } from '@qlick/contracts';
 import { Modal } from '../molecules/Modal';
@@ -12,6 +13,7 @@ import { Checkbox, ToggleSwitch } from '../atoms/Checkbox';
 import { Badge } from '../atoms/Badge';
 import { Alert } from '../atoms/Alert';
 import { Skeleton } from '../atoms/Skeleton';
+import { Button } from '../atoms/Button';
 import { WorkspaceItem, WorkspaceMemberItem } from '../../../lib/api/workspaceService';
 
 type WizardMode = 'invite' | 'manage';
@@ -29,6 +31,12 @@ export interface InviteMemberModalProps {
   isExistingMembershipsLoading?: boolean;
   isSubmitting: boolean;
   onSubmit: (email: string, assignments: WorkspaceMemberAssignment[]) => void;
+  /** Invite mode only: keep the current Workspace selected (Pengaturan Workspace). */
+  lockCurrentWorkspace?: boolean;
+  /** MEMBER-ACCESS-HUB P4: saved Workspace + role sets that can prefill step 2. */
+  templates?: RoleTemplate[];
+  /** MEMBER-ACCESS-HUB P4: save the reviewed assignments as a template; resolves true on success. */
+  onSaveTemplate?: (name: string, assignments: WorkspaceMemberAssignment[]) => Promise<boolean>;
 }
 
 const roleLabels: Record<AssignableWorkspaceRole, string> = {
@@ -59,6 +67,9 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   isExistingMembershipsLoading = false,
   isSubmitting,
   onSubmit,
+  lockCurrentWorkspace = true,
+  templates = [],
+  onSaveTemplate,
 }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState('');
@@ -66,6 +77,10 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   const [useSameRole, setUseSameRole] = useState(true);
   const [sharedDraft, setSharedDraft] = useState<AssignmentDraft>(emptyDraft);
   const [workspaceDrafts, setWorkspaceDrafts] = useState<Record<string, AssignmentDraft>>({});
+  const [templateId, setTemplateId] = useState('');
+  const [skippedTemplateEntries, setSkippedTemplateEntries] = useState(0);
+  const [templateName, setTemplateName] = useState('');
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -75,6 +90,9 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     setUseSameRole(true);
     setSharedDraft(emptyDraft());
     setWorkspaceDrafts({});
+    setTemplateId('');
+    setSkippedTemplateEntries(0);
+    setTemplateName('');
   }, [currentWorkspaceId, initialEmail, isOpen, mode]);
 
   const existingByWorkspace = useMemo(
@@ -164,6 +182,43 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
       });
     }
     setUseSameRole(checked);
+  };
+
+  const applyTemplate = (id: string) => {
+    setTemplateId(id);
+    const template = templates.find((item) => item.id === id);
+    if (!template) return;
+    const visible = new Set(workspaces.map((workspace) => workspace.id));
+    const usable = template.entries.filter(
+      (entry) =>
+        entry.available &&
+        visible.has(entry.workspaceId) &&
+        !existingByWorkspace.has(entry.workspaceId),
+    );
+    setSkippedTemplateEntries(template.entries.length - usable.length);
+    const keepCurrent = mode === 'invite' && lockCurrentWorkspace;
+    const ids = usable.map((entry) => entry.workspaceId);
+    if (keepCurrent && !ids.includes(currentWorkspaceId)) ids.unshift(currentWorkspaceId);
+    setSelectedWorkspaceIds(ids);
+    setUseSameRole(false);
+    setWorkspaceDrafts(
+      Object.fromEntries(
+        usable.map((entry) => [
+          entry.workspaceId,
+          { role: entry.role, specialties: [...entry.specialties] } satisfies AssignmentDraft,
+        ]),
+      ),
+    );
+  };
+
+  const saveTemplate = async () => {
+    if (!onSaveTemplate || !templateName.trim()) return;
+    setIsSavingTemplate(true);
+    try {
+      if (await onSaveTemplate(templateName.trim(), assignments)) setTemplateName('');
+    } finally {
+      setIsSavingTemplate(false);
+    }
   };
 
   const handlePrimaryAction = () => {
@@ -278,6 +333,29 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               </p>
             </div>
 
+            {templates.length > 0 && (
+              <div className="space-y-1.5">
+                <Select
+                  label="Pakai template peran"
+                  value={templateId}
+                  onChange={(event) => applyTemplate(event.target.value)}
+                >
+                  <option value="">Tanpa template</option>
+                  {templates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name} ({template.entries.length} Workspace)
+                    </option>
+                  ))}
+                </Select>
+                {templateId && skippedTemplateEntries > 0 && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    {skippedTemplateEntries} Workspace dari template dilewati karena sudah
+                    diarsipkan, tidak lagi Anda kelola, atau orang ini sudah menjadi anggota.
+                  </p>
+                )}
+              </div>
+            )}
+
             {workspaces.length > 1 && (
               <div className="rounded-xl border border-stone-200 bg-stone-50 px-3 dark:border-stone-800 dark:bg-stone-900/60">
                 <ToggleSwitch
@@ -338,7 +416,9 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                   const existing = existingByWorkspace.get(workspace.id);
                   const selected = selectedWorkspaceIds.includes(workspace.id);
                   const lockedCurrentWorkspace =
-                    mode === 'invite' && workspace.id === currentWorkspaceId;
+                    mode === 'invite' &&
+                    lockCurrentWorkspace &&
+                    workspace.id === currentWorkspaceId;
                   const draft = getDraft(workspace.id);
                   return (
                     <div
@@ -464,6 +544,27 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                 );
               })}
             </div>
+            {onSaveTemplate && (
+              <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-stone-300 p-3 sm:flex-row sm:items-end dark:border-stone-700">
+                <div className="flex-1">
+                  <Input
+                    label="Simpan akses ini sebagai template (opsional)"
+                    value={templateName}
+                    maxLength={60}
+                    onChange={(event) => setTemplateName(event.target.value)}
+                    placeholder="mis. QA Mobile"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => void saveTemplate()}
+                  isLoading={isSavingTemplate}
+                  disabled={!templateName.trim() || isSavingTemplate}
+                >
+                  Simpan template
+                </Button>
+              </div>
+            )}
           </section>
         )}
       </div>

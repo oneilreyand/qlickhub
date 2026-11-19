@@ -15,6 +15,10 @@ const access = vi.hoisted(() => ({
   getOverview: vi.fn(),
   resendInvite: vi.fn(),
   cancelInvite: vi.fn(),
+  listTemplates: vi.fn(),
+  createTemplate: vi.fn(),
+  deleteTemplate: vi.fn(),
+  importMembers: vi.fn(),
 }));
 const ws = vi.hoisted(() => ({
   updateMemberRole: vi.fn(),
@@ -111,6 +115,7 @@ describe('MemberAccessPage (MEMBER-ACCESS-HUB P2)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     access.getOverview.mockResolvedValue(overview);
+    access.listTemplates.mockResolvedValue([]);
   });
 
   it('shows the people × workspace matrix with status and read-only cells', async () => {
@@ -228,6 +233,150 @@ describe('MemberAccessPage (MEMBER-ACCESS-HUB P2)', () => {
     expect(within(dialog).getByText(/tautan undangannya tidak berlaku lagi/)).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Batalkan undangan' }));
     await waitFor(() => expect(access.cancelInvite).toHaveBeenCalledWith(NADIA));
+    await waitFor(() => expect(access.getOverview).toHaveBeenCalledTimes(2));
+  });
+
+  const template = {
+    id: '70000000-0000-4000-8000-000000000000',
+    name: 'QA Mobile',
+    createdAt: '2026-11-19T00:00:00.000Z',
+    entries: [
+      {
+        workspaceId: PAY,
+        workspaceName: 'Payment',
+        role: 'dev' as const,
+        specialties: ['frontend' as const],
+        available: true,
+      },
+      {
+        workspaceId: MOB,
+        workspaceName: 'Mobile App',
+        role: 'qa' as const,
+        specialties: [],
+        available: true,
+      },
+      {
+        workspaceId: OLD,
+        workspaceName: null,
+        role: 'po' as const,
+        specialties: [],
+        available: false,
+      },
+    ],
+  };
+
+  it('prefills the invite from a role template and saves a new one (P4)', async () => {
+    access.listTemplates.mockResolvedValue([template]);
+    access.createTemplate.mockResolvedValue({
+      ...template,
+      id: '80000000-0000-4000-8000-000000000000',
+      name: 'Tim Baru',
+    });
+    ws.addMember.mockResolvedValue({
+      assignmentResults: [{ status: 'added' }, { status: 'added' }],
+    });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Undang anggota' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText(/Alamat email/), {
+      target: { value: 'baru@contoh.id' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Lanjutkan' }));
+    const picker = await within(dialog).findByLabelText('Pakai template peran');
+    fireEvent.change(picker, { target: { value: template.id } });
+    expect(within(dialog).getByText(/1 Workspace dari template dilewati/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Lanjutkan' }));
+
+    fireEvent.change(within(dialog).getByLabelText(/Simpan akses ini sebagai template/), {
+      target: { value: 'Tim Baru' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan template' }));
+    const expected = [
+      { workspaceId: PAY, role: 'dev', specialties: ['frontend'] },
+      { workspaceId: MOB, role: 'qa', specialties: [] },
+    ];
+    await waitFor(() =>
+      expect(access.createTemplate).toHaveBeenCalledWith({ name: 'Tim Baru', entries: expected }),
+    );
+
+    fireEvent.click(within(dialog).getByRole('button', { name: /Kirim undangan ke 2 Workspace/ }));
+    await waitFor(() =>
+      expect(ws.addMember).toHaveBeenCalledWith(PAY, {
+        email: 'baru@contoh.id',
+        assignments: expected,
+      }),
+    );
+  });
+
+  it('lists and deletes role templates (P4)', async () => {
+    access.listTemplates.mockResolvedValue([template]);
+    access.deleteTemplate.mockResolvedValue(undefined);
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Template peran' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText('QA Mobile')).toBeInTheDocument();
+    expect(within(dialog).getByText(/Workspace tidak tersedia/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Hapus template QA Mobile' }));
+    await waitFor(() => expect(access.deleteTemplate).toHaveBeenCalledWith(template.id));
+    expect(await within(dialog).findByText(/Belum ada template/)).toBeInTheDocument();
+  });
+
+  it('previews a CSV import per row and processes only the valid rows (P4)', async () => {
+    const rows = [
+      { email: 'a@contoh.id', workspace: 'Payment', role: 'qa', specialties: '' },
+      { email: 'salah', workspace: 'Payment', role: 'qa', specialties: '' },
+    ];
+    const result = (mode: 'preview' | 'commit') => ({
+      mode,
+      committed: mode === 'commit',
+      validCount: 1,
+      invalidCount: 1,
+      peopleInvited: mode === 'commit' ? 1 : 0,
+      rows: [
+        {
+          line: 1,
+          email: 'a@contoh.id',
+          workspaceId: PAY,
+          workspaceName: 'Payment',
+          role: 'qa',
+          specialties: [],
+          status: 'valid',
+          action: 'add',
+          errors: [],
+        },
+        {
+          line: 2,
+          email: 'salah',
+          workspaceId: PAY,
+          workspaceName: 'Payment',
+          role: 'qa',
+          specialties: [],
+          status: 'invalid',
+          action: null,
+          errors: ['Email tidak valid.'],
+        },
+      ],
+    });
+    access.importMembers.mockImplementation(async ({ mode }: { mode: 'preview' | 'commit' }) =>
+      result(mode),
+    );
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Impor CSV' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Isi CSV'), {
+      target: { value: 'email,workspace,role\na@contoh.id,Payment,qa\nsalah,Payment,qa' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Periksa file' }));
+    await waitFor(() =>
+      expect(access.importMembers).toHaveBeenCalledWith({ mode: 'preview', rows }),
+    );
+    expect(await within(dialog).findByText('Email tidak valid.')).toBeInTheDocument();
+    expect(within(dialog).getByText('1 tidak valid')).toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Proses 1 baris valid' }));
+    await waitFor(() =>
+      expect(access.importMembers).toHaveBeenCalledWith({ mode: 'commit', rows }),
+    );
     await waitFor(() => expect(access.getOverview).toHaveBeenCalledTimes(2));
   });
 });

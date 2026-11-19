@@ -91,6 +91,208 @@ export async function getWorkspaceMembers(workspaceId: string) {
   });
 }
 
+export interface MemberAssignmentMutation {
+  user: UserModel;
+  processedMembers: Map<string, WorkspaceMemberModel>;
+  assignmentResults: Array<{
+    workspaceId: string;
+    workspaceName: string;
+    status: 'added' | 'restored' | 'already_member';
+  }>;
+  changedWorkspaceNames: string[];
+  setPasswordToken?: string;
+}
+
+/**
+ * Adds or restores one person's memberships inside the caller's transaction. The caller has
+ * already checked that every Workspace exists and that the actor manages it. Used by the single
+ * invite and by the CSV import (MEMBER-ACCESS-HUB P4).
+ */
+export async function applyMemberAssignments(
+  transaction: Transaction,
+  normalizedEmail: string,
+  assignments: WorkspaceMemberAssignment[],
+  workspaceById: Map<string, WorkspaceModel>,
+  actorId?: string,
+  activityMetadata: Record<string, unknown> = {},
+): Promise<MemberAssignmentMutation> {
+  let user = await UserModel.findOne({
+    where: { email: { [Op.iLike]: normalizedEmail } },
+    paranoid: false,
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+  let setPasswordToken: string | undefined;
+
+  if (user?.deletedAt) {
+    await user.restore({ transaction });
+  }
+
+  if (!user) {
+    const reset = createPasswordResetToken();
+    user = await UserModel.create(
+      {
+        email: normalizedEmail,
+        name: normalizedEmail.split('@')[0],
+        role: assignments[0].role,
+        passwordHash: null,
+        passwordResetToken: reset.tokenHash,
+        passwordResetExpiresAt: reset.expiresAt,
+      },
+      { transaction },
+    );
+    setPasswordToken = reset.token;
+  } else if (!user.passwordHash) {
+    const reset = createPasswordResetToken();
+    user.passwordResetToken = reset.tokenHash;
+    user.passwordResetExpiresAt = reset.expiresAt;
+    await user.save({ transaction });
+    setPasswordToken = reset.token;
+  }
+
+  const processedMembers = new Map<string, WorkspaceMemberModel>();
+  const assignmentResults: Array<{
+    workspaceId: string;
+    workspaceName: string;
+    status: 'added' | 'restored' | 'already_member';
+  }> = [];
+
+  for (const assignment of assignments) {
+    const workspace = workspaceById.get(assignment.workspaceId)!;
+    const activityActorId = actorId || workspace.ownerId;
+    const existingMember = await WorkspaceMemberModel.findOne({
+      where: { workspaceId: workspace.id, userId: user.id },
+      paranoid: false,
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+
+    if (!existingMember) {
+      const member = await WorkspaceMemberModel.create(
+        {
+          workspaceId: workspace.id,
+          userId: user.id,
+          role: assignment.role,
+        },
+        { transaction },
+      );
+      await replaceSpecialties(
+        workspace.id,
+        member,
+        assignment.specialties,
+        activityActorId,
+        transaction,
+      );
+      await WorkspaceMembershipActivityModel.create(
+        {
+          workspaceId: workspace.id,
+          actorId: activityActorId,
+          targetUserId: user.id,
+          action: 'member_added',
+          metadata: {
+            role: assignment.role,
+            specialties: assignment.specialties,
+            ...activityMetadata,
+          },
+        },
+        { transaction },
+      );
+      processedMembers.set(workspace.id, member);
+      assignmentResults.push({
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        status: 'added',
+      });
+      continue;
+    }
+
+    if (existingMember.deletedAt) {
+      const previousRole = existingMember.role;
+      await existingMember.restore({ transaction });
+      existingMember.role = assignment.role;
+      existingMember.joinedAt = new Date();
+      await existingMember.save({ transaction });
+      await replaceSpecialties(
+        workspace.id,
+        existingMember,
+        assignment.specialties,
+        activityActorId,
+        transaction,
+      );
+      await WorkspaceMembershipActivityModel.create(
+        {
+          workspaceId: workspace.id,
+          actorId: activityActorId,
+          targetUserId: user.id,
+          action: 'member_restored',
+          metadata: {
+            previousRole,
+            restoredRole: existingMember.role,
+            specialties: assignment.specialties,
+            ...activityMetadata,
+          },
+        },
+        { transaction },
+      );
+      processedMembers.set(workspace.id, existingMember);
+      assignmentResults.push({
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        status: 'restored',
+      });
+      continue;
+    }
+
+    processedMembers.set(workspace.id, existingMember);
+    assignmentResults.push({
+      workspaceId: workspace.id,
+      workspaceName: workspace.name,
+      status: 'already_member',
+    });
+  }
+
+  const changedWorkspaceNames = assignmentResults
+    .filter((result) => result.status !== 'already_member')
+    .map((result) => result.workspaceName);
+  return { user, processedMembers, assignmentResults, changedWorkspaceNames, setPasswordToken };
+}
+
+/** Invitation email + push after a membership change has been committed. */
+export async function sendMembershipInvitation(
+  user: UserModel,
+  changedWorkspaceNames: string[],
+  primaryRole: string,
+  primaryWorkspaceId: string,
+  setPasswordToken: string | undefined,
+  actorId?: string,
+) {
+  if (changedWorkspaceNames.length === 0) return;
+  let inviterName = 'Workspace Admin';
+  if (actorId) {
+    const actor = await UserModel.findByPk(actorId);
+    if (actor) inviterName = actor.name;
+  }
+  await emailService.sendWorkspaceInvitationEmail(
+    user.email,
+    changedWorkspaceNames,
+    inviterName,
+    primaryRole,
+    setPasswordToken,
+  );
+
+  fcmService
+    .sendWorkspaceMembershipNotification({
+      userId: user.id,
+      actorName: inviterName,
+      actorId: actorId || user.id,
+      workspaceName: changedWorkspaceNames.join(', '),
+      workspaceId: primaryWorkspaceId,
+      action: 'added',
+      newRole: primaryRole,
+    })
+    .catch((err) => console.warn('⚠️ Failed to dispatch workspace member notification:', err));
+}
+
 export async function addWorkspaceMember(
   workspaceId: string,
   input: AddWorkspaceMemberInput,
@@ -149,139 +351,14 @@ export async function addWorkspaceMember(
     }
 
     const workspaceById = new Map(targetWorkspaces.map((workspace) => [workspace.id, workspace]));
-    let user = await UserModel.findOne({
-      where: { email: { [Op.iLike]: normalizedEmail } },
-      paranoid: false,
-      transaction,
-      lock: transaction.LOCK.UPDATE,
-    });
-    let setPasswordToken: string | undefined;
-
-    if (user?.deletedAt) {
-      await user.restore({ transaction });
-    }
-
-    if (!user) {
-      const reset = createPasswordResetToken();
-      user = await UserModel.create(
-        {
-          email: normalizedEmail,
-          name: normalizedEmail.split('@')[0],
-          role: assignments[0].role,
-          passwordHash: null,
-          passwordResetToken: reset.tokenHash,
-          passwordResetExpiresAt: reset.expiresAt,
-        },
-        { transaction },
-      );
-      setPasswordToken = reset.token;
-    } else if (!user.passwordHash) {
-      const reset = createPasswordResetToken();
-      user.passwordResetToken = reset.tokenHash;
-      user.passwordResetExpiresAt = reset.expiresAt;
-      await user.save({ transaction });
-      setPasswordToken = reset.token;
-    }
-
-    const processedMembers = new Map<string, WorkspaceMemberModel>();
-    const assignmentResults: Array<{
-      workspaceId: string;
-      workspaceName: string;
-      status: 'added' | 'restored' | 'already_member';
-    }> = [];
-
-    for (const assignment of assignments) {
-      const workspace = workspaceById.get(assignment.workspaceId)!;
-      const activityActorId = actorId || workspace.ownerId;
-      const existingMember = await WorkspaceMemberModel.findOne({
-        where: { workspaceId: workspace.id, userId: user.id },
-        paranoid: false,
+    const { user, processedMembers, assignmentResults, changedWorkspaceNames, setPasswordToken } =
+      await applyMemberAssignments(
         transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-
-      if (!existingMember) {
-        const member = await WorkspaceMemberModel.create(
-          {
-            workspaceId: workspace.id,
-            userId: user.id,
-            role: assignment.role,
-          },
-          { transaction },
-        );
-        await replaceSpecialties(
-          workspace.id,
-          member,
-          assignment.specialties,
-          activityActorId,
-          transaction,
-        );
-        await WorkspaceMembershipActivityModel.create(
-          {
-            workspaceId: workspace.id,
-            actorId: activityActorId,
-            targetUserId: user.id,
-            action: 'member_added',
-            metadata: { role: assignment.role, specialties: assignment.specialties },
-          },
-          { transaction },
-        );
-        processedMembers.set(workspace.id, member);
-        assignmentResults.push({
-          workspaceId: workspace.id,
-          workspaceName: workspace.name,
-          status: 'added',
-        });
-        continue;
-      }
-
-      if (existingMember.deletedAt) {
-        const previousRole = existingMember.role;
-        await existingMember.restore({ transaction });
-        existingMember.role = assignment.role;
-        existingMember.joinedAt = new Date();
-        await existingMember.save({ transaction });
-        await replaceSpecialties(
-          workspace.id,
-          existingMember,
-          assignment.specialties,
-          activityActorId,
-          transaction,
-        );
-        await WorkspaceMembershipActivityModel.create(
-          {
-            workspaceId: workspace.id,
-            actorId: activityActorId,
-            targetUserId: user.id,
-            action: 'member_restored',
-            metadata: {
-              previousRole,
-              restoredRole: existingMember.role,
-              specialties: assignment.specialties,
-            },
-          },
-          { transaction },
-        );
-        processedMembers.set(workspace.id, existingMember);
-        assignmentResults.push({
-          workspaceId: workspace.id,
-          workspaceName: workspace.name,
-          status: 'restored',
-        });
-        continue;
-      }
-
-      processedMembers.set(workspace.id, existingMember);
-      assignmentResults.push({
-        workspaceId: workspace.id,
-        workspaceName: workspace.name,
-        status: 'already_member',
-      });
-    }
-
-    const changedWorkspaceNames = assignmentResults
-      .filter((result) => result.status !== 'already_member')
-      .map((result) => result.workspaceName);
+        normalizedEmail,
+        assignments,
+        workspaceById,
+        actorId,
+      );
     if (changedWorkspaceNames.length === 0) {
       throw new Error('CONFLICT: User is already a member of all selected workspaces.');
     }
@@ -315,33 +392,14 @@ export async function addWorkspaceMember(
     setPasswordToken,
   } = mutation;
 
-  // Send zero-cost invitation notification email if workspaces were added
-  if (changedWorkspaceNames.length > 0) {
-    let inviterName = 'Workspace Admin';
-    if (actorId) {
-      const actor = await UserModel.findByPk(actorId);
-      if (actor) inviterName = actor.name;
-    }
-    await emailService.sendWorkspaceInvitationEmail(
-      user.email,
-      changedWorkspaceNames,
-      inviterName,
-      primaryMember.role,
-      setPasswordToken,
-    );
-
-    fcmService
-      .sendWorkspaceMembershipNotification({
-        userId: user.id,
-        actorName: inviterName,
-        actorId: actorId || user.id,
-        workspaceName: changedWorkspaceNames.join(', '),
-        workspaceId: primaryMember.workspaceId,
-        action: 'added',
-        newRole: primaryMember.role,
-      })
-      .catch((err) => console.warn('⚠️ Failed to dispatch workspace member notification:', err));
-  }
+  await sendMembershipInvitation(
+    user,
+    changedWorkspaceNames,
+    primaryMember.role,
+    primaryMember.workspaceId,
+    setPasswordToken,
+    actorId,
+  );
 
   return {
     id: primaryMember.id,
