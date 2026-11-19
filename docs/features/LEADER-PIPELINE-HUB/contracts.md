@@ -32,6 +32,16 @@ lebih cepat → 429 dengan jam berikutnya. Hambatan tertutup → 409; leader yan
 dikenal → 404. Tanpa migrasi. `GET /v1/leader/pipeline` menambah `lastPingedAt` dan `nextPingAvailableAt`
 (null bila boleh ping sekarang) pada setiap `openBlockers`.
 
+### Pembaruan langsung (P5)
+
+`GET /v1/leader/stream` (SSE, Owner/Admin minimal satu Workspace aktif; selain itu 403) berlangganan semua
+Workspace yang dipimpin dalam satu koneksi. Event: `leader:ready` (`{ workspaceIds }`) lalu
+`leader:pipeline_changed` (`{ workspaceId }` saja) setiap ada aktivitas task yang di-commit di Workspace itu
+(status, penugasan, jadwal, hambatan, ping…), digabung per Workspace dalam 1,5 detik. Tidak ada data task di
+stream; klien memuat ulang `GET /v1/leader/pipeline`. Kanal leader terpisah dari stream Workspace biasa,
+sehingga anggota non-leader tidak menerimanya. Di klien: debounce 2 detik; bila stream putus atau tidak
+tersedia, ringkasan dimuat ulang tiap 2 menit selama tab terlihat.
+
 ### Pemetaan tahap (P1)
 
 | Tahap                   | Aktif bila                                                                                          | Umur dihitung dari                                      |

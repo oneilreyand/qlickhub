@@ -28,7 +28,41 @@ export interface LeaderHubSummaryViewProps {
   onSeeAllBlockers?: () => void;
   /** Number of blockers listed on the summary; the rest sit behind "Lihat semua". */
   blockerPreviewLimit?: number;
+  /** LEADER-PIPELINE-HUB P5: live-update state shown above the summary. */
+  live?: { status: 'connecting' | 'live' | 'reconnecting' | 'polling'; updatedAt: Date | null };
 }
+
+const LIVE_TEXT = {
+  connecting: 'Menyambungkan pembaruan langsung…',
+  live: 'Langsung',
+  reconnecting: 'Menyambung ulang…',
+  polling: 'Diperbarui berkala tiap 2 menit',
+} as const;
+
+const timeFormatter = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+const LiveIndicator: React.FC<{ live: NonNullable<LeaderHubSummaryViewProps['live']> }> = ({
+  live,
+}) => (
+  <p
+    role="status"
+    aria-live="polite"
+    className="flex items-center justify-end gap-1.5 text-[11px] font-medium text-stone-500 dark:text-stone-400"
+  >
+    <span
+      aria-hidden="true"
+      className={`h-2 w-2 rounded-full ${
+        live.status === 'live'
+          ? 'bg-emerald-500'
+          : live.status === 'polling'
+            ? 'bg-stone-400'
+            : 'animate-pulse bg-amber-500'
+      }`}
+    />
+    {LIVE_TEXT[live.status]}
+    {live.updatedAt && ` · diperbarui ${timeFormatter.format(live.updatedAt)}`}
+  </p>
+);
 
 const LoadingSkeleton: React.FC = () => (
   <div aria-busy="true" aria-live="polite" className="space-y-5">
@@ -55,6 +89,7 @@ export const LeaderHubSummaryView: React.FC<LeaderHubSummaryViewProps> = ({
   onOpenBlocker,
   onSeeAllBlockers,
   blockerPreviewLimit = 4,
+  live,
 }) => {
   if (state.status === 'loading') return <LoadingSkeleton />;
 
@@ -103,6 +138,7 @@ export const LeaderHubSummaryView: React.FC<LeaderHubSummaryViewProps> = ({
 
   return (
     <div className="space-y-5">
+      {live && <LiveIndicator live={live} />}
       <LeaderSummaryStatGrid stats={data.stats} />
       <SdlcPipelineTable rows={data.pipeline} onOpenFeature={onOpenFeature} />
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">

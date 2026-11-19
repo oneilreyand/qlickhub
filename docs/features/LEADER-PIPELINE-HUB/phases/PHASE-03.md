@@ -1,6 +1,6 @@
 # LEADER-PIPELINE-HUB — Tahap 4: Build Phase 03 — Beban tim berbasis poin
 
-**Status:** Kandidat teruji
+**Status:** Di main
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.1
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, FLOW-011, FLOW-012, FLOW-013, AUTH-011

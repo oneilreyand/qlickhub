@@ -1,6 +1,6 @@
 # LEADER-PIPELINE-HUB — Tahap 4: Build Phase 04 — Papan hambatan + Ping PIC
 
-**Status:** Kandidat teruji
+**Status:** Di main
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-4.1 (AC-4.2 dipasang bersama P2)
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, FLOW-011

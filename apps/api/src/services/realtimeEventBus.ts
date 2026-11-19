@@ -13,7 +13,8 @@ export type RealtimeEventType =
   | 'notification:new'
   | 'discussion:comment_created'
   | 'discussion:comment_updated'
-  | 'discussion:comment_deleted';
+  | 'discussion:comment_deleted'
+  | 'leader:pipeline_changed';
 
 export interface RealtimeEventPayload<T = unknown> {
   event: RealtimeEventType;
@@ -84,7 +85,7 @@ class RealtimeEventBus extends EventEmitter {
     workspaceId: string,
     event: RealtimeEventType,
     data: T,
-    recipientUserIds?: string[]
+    recipientUserIds?: string[],
   ): void {
     const payload: RealtimeEventPayload<T> = {
       event,
@@ -109,7 +110,7 @@ class RealtimeEventBus extends EventEmitter {
     workspaceId: string,
     userId: string,
     event: RealtimeEventType,
-    data: T
+    data: T,
   ): void {
     this.emitToWorkspace(workspaceId, event, data, [userId]);
   }

@@ -1,6 +1,6 @@
 # LEADER-PIPELINE-HUB — Tahap 4: Build Phase 01 — Mesin kesehatan + tahap pipeline
 
-**Status:** Kandidat teruji
+**Status:** Di main
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-1.1–AC-1.3
 **Applicable Policy IDs:** AI-009, AI-013, AI-014
