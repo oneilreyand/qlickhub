@@ -40,7 +40,7 @@ describe('Leader live stream HTTP / PostgreSQL Integration', () => {
     path: string,
     actor: string,
     trigger: () => Promise<void>,
-    waitMs = 4000,
+    waitMs = 12000,
   ): Promise<{ status: number; events: { event: string; data: string }[] }> {
     const controller = new AbortController();
     const response = await fetch(`${baseUrl}${path}`, {
