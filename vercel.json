@@ -18,6 +18,22 @@
       "destination": "/api"
     },
     {
+      "source": "/mcp",
+      "destination": "/api"
+    },
+    {
+      "source": "/oauth/:path*",
+      "destination": "/api"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource/:path*",
+      "destination": "/api"
+    },
+    {
+      "source": "/.well-known/oauth-authorization-server/:path*",
+      "destination": "/api"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

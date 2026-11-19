@@ -1,6 +1,13 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createApp } from '../app.js';
 
+export const REWRITE_PREFIXES = [
+  '/v1/',
+  '/oauth/',
+  '/.well-known/oauth-protected-resource/',
+  '/.well-known/oauth-authorization-server/',
+] as const;
+
 export const createVercelHandler = () => {
   const app = createApp();
   return (req: IncomingMessage, res: ServerResponse) => {
@@ -11,11 +18,14 @@ export const createVercelHandler = () => {
     // Remove only an unambiguous matching capture; domain query validation stays strict.
     const url = req.url || '';
     const separator = url.indexOf('?');
-    if (separator >= 0 && url.startsWith('/v1/')) {
+    // SPIKE (spike/mcp-oauth): the MCP OAuth rewrites in vercel.json use the same `:path*` capture.
+    const prefix =
+      separator >= 0 ? REWRITE_PREFIXES.find((candidate) => url.startsWith(candidate)) : undefined;
+    if (prefix) {
       const pathname = url.slice(0, separator);
       const query = new URLSearchParams(url.slice(separator + 1));
       const captures = query.getAll('path');
-      if (captures.length === 1 && captures[0] === pathname.slice('/v1/'.length)) {
+      if (captures.length === 1 && captures[0] === pathname.slice(prefix.length)) {
         query.delete('path');
         const remaining = query.toString();
         req.url = pathname + (remaining ? `?${remaining}` : '');

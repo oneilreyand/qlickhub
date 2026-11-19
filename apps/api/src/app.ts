@@ -37,6 +37,7 @@ import { configureProxyTrust } from './http/middleware/proxyTrust.js';
 import { readMcpSpikeConfig } from './modules/mcp/mcpSpikeConfig.js';
 import { createDevTokenVerifier } from './modules/mcp/mcpTokenVerifier.js';
 import { createMcpSpikeRouter } from './modules/mcp/mcpRoutes.js';
+import { createMcpAuthServer } from './modules/mcp/mcpAuthServer.js';
 
 export const createApp = () => {
   const app = express();
@@ -46,6 +47,20 @@ export const createApp = () => {
   app.use(assignRequestId);
   app.use(helmet({ referrerPolicy: { policy: 'no-referrer' } }));
   app.use(cors(corsOptions));
+  // SPIKE (spike/mcp-oauth): the OAuth authorization server parses its own bodies, so it is
+  // mounted before express.json.
+  const mcpSpike = readMcpSpikeConfig();
+  const mcpAuth =
+    mcpSpike.enabled && mcpSpike.oauth
+      ? createMcpAuthServer({
+          issuer: mcpSpike.issuer,
+          resource: mcpSpike.resourceUrl,
+          cookieSecret: mcpSpike.oauthCookieSecret,
+          signingJwk: mcpSpike.oauthSigningJwk,
+          store: mcpSpike.oauthStore,
+        })
+      : undefined;
+  if (mcpAuth) app.use(mcpAuth.router);
   app.use(express.json({ limit: '100kb' }));
   // ADR-040: scheduler routes authenticate with CRON_SECRET and have no browser origin, so they
   // are mounted before the origin check. Every other state-changing route stays behind it.
@@ -53,8 +68,9 @@ export const createApp = () => {
   // SPIKE (spike/mcp-oauth, never merged): MCP uses bearer tokens, not cookies, so it is mounted
   // before the browser-origin check like the cron routes. Disabled unless MCP_SPIKE_ENABLED=true
   // outside production.
-  const mcpSpike = readMcpSpikeConfig();
-  if (mcpSpike.enabled) app.use(createMcpSpikeRouter(mcpSpike, createDevTokenVerifier(mcpSpike)));
+  if (mcpSpike.enabled) {
+    app.use(createMcpSpikeRouter(mcpSpike, mcpAuth?.verifier ?? createDevTokenVerifier(mcpSpike)));
+  }
   app.use(enforceTrustedOrigin);
 
   // Health Check Endpoint (Includes PostgreSQL DB Check)
