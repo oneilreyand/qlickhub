@@ -13,8 +13,6 @@ import {
   WorkspaceItem,
   WorkspaceMemberItem,
 } from '../../lib/api/workspaceService';
-import { authService } from '../../lib/api/authService';
-import { personalCapacityService } from '../../lib/api/personalCapacityService';
 
 vi.mock('../../lib/api/workspaceService', () => ({
   workspaceService: {
@@ -283,9 +281,7 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
     });
   });
 
-  it('opens remove member confirmation modal and removes member on confirm', async () => {
-    vi.mocked(workspaceService.removeMember).mockResolvedValue();
-
+  it('shows members read-only and sends Owner/Admin to Tim & Akses for changes', async () => {
     const store = createMockStore();
     render(
       <Provider store={store}>
@@ -295,58 +291,12 @@ describe('WorkspaceSettingsPage Confirmation Modals', () => {
       </Provider>,
     );
 
-    // Click remove member button
-    const removeBtns = await screen.findAllByRole('button', { name: /Hapus anggota/i });
-    fireEvent.click(removeBtns[0]);
-
-    // Modal dialog should open
-    const modal = screen.getByRole('dialog', { name: /Hapus Anggota dari Workspace\?/i });
-    expect(modal).toBeInTheDocument();
-    expect(within(modal).getAllByText(/bob@qlick\.test/i).length).toBeGreaterThan(0);
-
-    // Confirm removal
-    const confirmBtn = within(modal).getByRole('button', { name: 'Hapus Anggota' });
-    await act(async () => {
-      fireEvent.click(confirmBtn);
-    });
-
-    expect(workspaceService.removeMember).toHaveBeenCalledWith('ws-1', 'user-dev');
-    expect(
-      screen.queryByRole('dialog', { name: /Hapus Anggota dari Workspace\?/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('submits an administrative reset for the exact active Workspace', async () => {
-    vi.mocked(authService.adminResetMemberPassword).mockResolvedValue({
-      message: 'Member password reset successfully.',
-    });
-    const store = createMockStore();
-    render(
-      <Provider store={store}>
-        <MemoryRouter initialEntries={['/workspaces/settings?tab=anggota']}>
-          <WorkspaceSettingsPage />
-        </MemoryRouter>
-      </Provider>,
-    );
-
-    const resetButtons = await screen.findAllByRole('button', {
-      name: 'Atur ulang kata sandi anggota',
-    });
-    fireEvent.click(resetButtons[0]);
-
-    const modal = screen.getByRole('dialog', { name: 'Atur Ulang Kata Sandi Anggota' });
-    fireEvent.change(within(modal).getByPlaceholderText('Minimal 6 karakter'), {
-      target: { value: 'Replacement-password-123!' },
-    });
-    await act(async () => {
-      fireEvent.click(within(modal).getByRole('button', { name: 'Atur Ulang Kata Sandi' }));
-    });
-
-    expect(authService.adminResetMemberPassword).toHaveBeenCalledWith({
-      workspaceId: 'ws-1',
-      targetUserId: 'user-dev',
-      newPassword: 'Replacement-password-123!',
-    });
+    expect((await screen.findAllByText('Bob Developer')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: 'Tim & Akses' })).toHaveAttribute('href', '/members');
+    expect(screen.queryByRole('button', { name: /Undang/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Atur ulang kata sandi anggota' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Kapasitas & cuti/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Hapus/ })).toBeNull();
   });
 
   it('loads the QA assurance rollout and records an Owner decision through the backend API', async () => {
@@ -544,7 +494,7 @@ describe('WorkspaceSettingsPage tabs (MEMBER-ACCESS-HUB P6)', () => {
     ).toEqual([
       'Umum',
       'Kalender & Kapasitas',
-      'Anggota',
+      'Daftar anggota',
       'Alur & Kebijakan',
       'QA',
       'Log Audit',
@@ -553,7 +503,7 @@ describe('WorkspaceSettingsPage tabs (MEMBER-ACCESS-HUB P6)', () => {
     expect(screen.getByRole('tabpanel', { name: 'Umum' })).toBeInTheDocument();
     expect(screen.queryByText('Bob Developer')).not.toBeInTheDocument();
 
-    fireEvent.click(within(tablist).getByRole('tab', { name: 'Anggota' }));
+    fireEvent.click(within(tablist).getByRole('tab', { name: 'Daftar anggota' }));
     expect(screen.getByTestId('location')).toHaveTextContent('?tab=anggota');
     expect((await screen.findAllByText('Bob Developer')).length).toBeGreaterThan(0);
 
@@ -570,30 +520,6 @@ describe('WorkspaceSettingsPage tabs (MEMBER-ACCESS-HUB P6)', () => {
     expect(within(tablist).queryByRole('tab', { name: 'Zona Bahaya' })).not.toBeInTheDocument();
     expect(screen.getByRole('tabpanel', { name: 'Umum' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Arsipkan Workspace' })).not.toBeInTheDocument();
-  });
-
-  it('lets the Owner open capacity and time off of another member through /users/:id', async () => {
-    vi.mocked(personalCapacityService.getForUser).mockResolvedValue({
-      userId: '00000000-0000-4000-8000-000000000002',
-      weeklyPoints: 10,
-      effectiveWeeklyPoints: 10,
-      source: 'override',
-      timeOff: [],
-      canEdit: true,
-    });
-    renderSettings(createMockStore(), '/workspaces/settings?tab=anggota');
-
-    const buttons = await screen.findAllByRole('button', {
-      name: 'Kapasitas & cuti Bob Developer',
-    });
-    fireEvent.click(buttons[0]);
-
-    expect(
-      await screen.findByRole('dialog', { name: 'Kapasitas & cuti Bob Developer' }),
-    ).toBeInTheDocument();
-    expect(personalCapacityService.getForUser).toHaveBeenCalledWith('user-dev');
-    expect(personalCapacityService.getMine).not.toHaveBeenCalled();
-    expect(await screen.findByLabelText('Poin per minggu')).toHaveValue(10);
   });
 
   it('renders the membership audit log with readable sentences', async () => {

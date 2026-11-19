@@ -4,7 +4,7 @@ const SECTION_LABELS: Array<[RegExp, string]> = [
   [/^\/projects\/[^/]+\/tasks\//, 'Task Hub'],
   [/^\/work\/features\//, 'Task Hub'],
   [/^\/leader-hub/, 'Leader Hub'],
-  [/^\/members/, 'Anggota & Akses'],
+  [/^\/members/, 'Tim & Akses'],
   [/^\/workspaces\/settings/, 'Pengaturan Workspace'],
   [/^\/tests/, 'Pengujian'],
   [/^\/components/, 'Galeri Komponen'],
@@ -27,7 +27,7 @@ export function getWorkPageOrigin(
 
 /** Current section name shown in the slim header; mirrors the Sidebar destinations. */
 export function getSectionLabel(pathname: string, workTab: string, state?: unknown): string {
-  if (pathname === '/work') return workTab === 'tasks' ? 'Task Hub' : 'Ringkasan';
+  if (pathname === '/work') return workTab === 'tasks' ? 'Task Hub' : 'Beranda';
   const origin = getWorkPageOrigin(pathname, state);
   if (origin) return origin === 'my-tasks' ? 'Tugas Saya' : 'Task Hub';
   const match = SECTION_LABELS.find(([pattern]) => pattern.test(pathname));

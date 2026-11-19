@@ -98,7 +98,7 @@ describe('LeaderHubPage Component', () => {
 
     // Default tab is Ringkasan (LEADER-PIPELINE-HUB P2)
     expect(screen.getByTestId('mock-leader-summary')).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/Timeline & Beban Kerja/i));
+    fireEvent.click(screen.getByText('Beban kerja'));
     expect(screen.getByTestId('mock-leader-timeline')).toBeInTheDocument();
 
     // Click on Quality tab
@@ -107,7 +107,7 @@ describe('LeaderHubPage Component', () => {
     expect(screen.getByTestId('mock-leader-quality')).toBeInTheDocument();
 
     // Click on Digest tab
-    const digestTabButton = screen.getByText(/Laporan Eksekutif/i);
+    const digestTabButton = screen.getByText('Laporan tim');
     fireEvent.click(digestTabButton);
     expect(screen.getByTestId('mock-leader-digest')).toBeInTheDocument();
   });

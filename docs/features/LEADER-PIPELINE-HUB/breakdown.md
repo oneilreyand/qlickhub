@@ -36,7 +36,7 @@ flowchart LR
 | P8    | Tab Beban kerja                     | AC-8.1, AC-8.2   | 6/16 | P3; G2 tambahan                | Menunggu G2                             |
 | P9    | Tab Hambatan                        | AC-9.1, AC-9.2   | 5/16 | P4; G2 tambahan                | Menunggu G2                             |
 | P10   | Tab Alur & Kualitas                 | AC-10.1, AC-10.2 | 6/16 | P6; G2 tambahan                | Menunggu G2                             |
-| P11   | Tab Laporan berkala                 | AC-11.1, AC-11.2 | 7/16 | P6; G2 tambahan                | Menunggu G2                             |
+| P11   | Tab Laporan tim                     | AC-11.1, AC-11.2 | 7/16 | P6; G2 tambahan                | Menunggu G2                             |
 | P12   | Detail Feature                      | AC-12.1          | 6/16 | P1; G2 tambahan                | Menunggu G2                             |
 
 ## 2. Task per phase

@@ -204,7 +204,7 @@ export const ComponentGalleryPage: React.FC = () => {
 
       <Section
         category="Organisms"
-        title="Leader Hub — Ringkasan"
+        title="Leader Hub — Ikhtisar"
         description="Slicing desain 02-leader-hub-ringkasan dengan data contoh (fixture); belum tersambung ke API."
       >
         <LeaderHubSummaryGalleryDemo />

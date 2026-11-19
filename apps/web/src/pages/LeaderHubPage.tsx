@@ -142,8 +142,8 @@ export const LeaderHubPage: React.FC = () => {
             </Badge>
           </div>
           <p className="text-xs text-stone-500 dark:text-stone-400">
-            Dasbor pengawasan lintas workspace: timeline pengerjaan, deteksi overlap beban kerja,
-            dan mutu defect staging vs production
+            Pantau kesehatan Feature, beban tim, dan hambatan lintas workspace. Halaman ini hanya
+            untuk membaca; perubahan dilakukan di Task Hub atau Tim & Akses.
           </p>
         </div>
 
@@ -194,7 +194,7 @@ export const LeaderHubPage: React.FC = () => {
           }`}
         >
           <Activity className="h-4 w-4" />
-          <span>Ringkasan</span>
+          <span>Ikhtisar</span>
         </button>
 
         <button
@@ -206,7 +206,7 @@ export const LeaderHubPage: React.FC = () => {
           }`}
         >
           <Calendar className="h-4 w-4" />
-          <span>Timeline & Beban Kerja (FLOW-007)</span>
+          <span>Beban kerja</span>
         </button>
 
         <button
@@ -230,7 +230,7 @@ export const LeaderHubPage: React.FC = () => {
           }`}
         >
           <FileBarChart2 className="h-4 w-4" />
-          <span>Laporan Eksekutif Mingguan/Bulanan</span>
+          <span>Laporan tim</span>
         </button>
       </div>
 

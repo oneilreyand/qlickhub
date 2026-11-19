@@ -75,7 +75,7 @@ describe('Sidebar Role-based Visibility', () => {
     renderSidebar('owner');
 
     const links = screen.getAllByRole('link').map((link) => link.textContent?.trim());
-    expect(links.slice(0, 3)).toEqual(['Ringkasan', 'Task Hub', 'Tugas Saya']);
+    expect(links.slice(0, 3)).toEqual(['Beranda', 'Task Hub', 'Tugas Saya']);
     expect(links).not.toContain('Laporan');
     expect(screen.getByText('Lainnya')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ganti workspace/i })).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe('Sidebar Role-based Visibility', () => {
 
   it('shows Overview, Task Hub, Tugas Saya and Laporan Saya for all roles', () => {
     const { unmount } = renderSidebar('dev');
-    expect(screen.getByText('Ringkasan')).toBeInTheDocument();
+    expect(screen.getByText('Beranda')).toBeInTheDocument();
     expect(screen.getByText('Task Hub')).toBeInTheDocument();
     expect(screen.getByText('Tugas Saya')).toBeInTheDocument();
     expect(screen.getByText('Laporan Saya')).toBeInTheDocument();
@@ -190,12 +190,12 @@ describe('Sidebar Role-based Visibility', () => {
     expect(screen.getByRole('link', { name: 'Task Hub' })).not.toHaveClass('bg-[#B1E743]');
   });
 
-  it('shows Anggota & Akses only to Owner/Admin (MEMBER-ACCESS-HUB P2)', () => {
+  it('shows Tim & Akses only to Owner/Admin (MEMBER-ACCESS-HUB P2)', () => {
     const { unmount } = renderSidebar('owner');
-    expect(screen.getByText('Anggota & Akses')).toBeInTheDocument();
+    expect(screen.getByText('Tim & Akses')).toBeInTheDocument();
     unmount();
     renderSidebar('dev');
-    expect(screen.queryByText('Anggota & Akses')).toBeNull();
+    expect(screen.queryByText('Tim & Akses')).toBeNull();
   });
 
   it('shows folders only on work pages', () => {

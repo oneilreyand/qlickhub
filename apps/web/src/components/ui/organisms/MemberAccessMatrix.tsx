@@ -31,6 +31,8 @@ export interface MemberAccessMatrixProps {
   onResendInvite?: (person: MemberAccessPerson) => void;
   onCancelInvite?: (person: MemberAccessPerson) => void;
   busyUserId?: string | null;
+  /** UX-NAV-CLARITY: opens the person panel (capacity, time off, password). */
+  onOpenPerson?: (person: MemberAccessPerson) => void;
 }
 
 const invitedFormatter = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' });
@@ -48,6 +50,7 @@ export const MemberAccessMatrix: React.FC<MemberAccessMatrixProps> = ({
   onResendInvite,
   onCancelInvite,
   busyUserId = null,
+  onOpenPerson,
 }) => {
   const people = useMemo(() => filterPeople(overview, filter), [overview, filter]);
   const pendingCount = overview.people.filter((p) => p.activation === 'pending').length;
@@ -161,14 +164,30 @@ export const MemberAccessMatrix: React.FC<MemberAccessMatrixProps> = ({
                           {initials(person.name)}
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate font-semibold text-stone-900 dark:text-white">
-                            {person.name}
-                            {person.userId === currentUserId && (
-                              <span className="ml-1 text-xs font-normal text-stone-500">
-                                (kamu)
-                              </span>
-                            )}
-                          </span>
+                          {onOpenPerson ? (
+                            <button
+                              type="button"
+                              onClick={() => onOpenPerson(person)}
+                              aria-label={`Detail ${person.name}`}
+                              className="block max-w-full truncate text-left font-semibold text-stone-900 underline-offset-2 hover:underline dark:text-white"
+                            >
+                              {person.name}
+                              {person.userId === currentUserId && (
+                                <span className="ml-1 text-xs font-normal text-stone-500">
+                                  (kamu)
+                                </span>
+                              )}
+                            </button>
+                          ) : (
+                            <span className="block truncate font-semibold text-stone-900 dark:text-white">
+                              {person.name}
+                              {person.userId === currentUserId && (
+                                <span className="ml-1 text-xs font-normal text-stone-500">
+                                  (kamu)
+                                </span>
+                              )}
+                            </span>
+                          )}
                           <span className="block truncate text-xs text-stone-500 dark:text-stone-400">
                             {person.email}
                           </span>

@@ -14,14 +14,14 @@ bila jaringan tersedia. Semua nama, email, angka, dan tanggal di layar adalah co
 | File                                    | Artboard canvas                             | Feature             | Desktop 1440 | HP 390        |
 | --------------------------------------- | ------------------------------------------- | ------------------- | ------------ | ------------- |
 | `01-laporan-saya.webp`                  | Laporan Saya                                | MY-WORK-REPORT      | Ada          | Ada           |
-| `02-leader-hub-ringkasan.webp`          | Leader Hub — Ringkasan                      | LEADER-SDLC-HUB     | Ada          | Ada           |
-| `03-anggota-akses.webp`                 | Anggota & Akses                             | MEMBER-ACCESS-HUB   | Ada          | Ikuti pola HP |
+| `02-leader-hub-ringkasan.webp`          | Leader Hub — Ikhtisar                       | LEADER-SDLC-HUB     | Ada          | Ada           |
+| `03-anggota-akses.webp`                 | Tim & Akses                                 | MEMBER-ACCESS-HUB   | Ada          | Ikuti pola HP |
 | `04-undang-anggota.webp`                | Undang anggota (modal)                      | MEMBER-ACCESS-HUB   | Ada (760)    | —             |
 | `05-pengaturan-kalender-kapasitas.webp` | Pengaturan Workspace — Kalender & Kapasitas | WORK-FOUNDATION     | Ada          | Ikuti pola HP |
 | `06-leader-hub-beban-kerja.webp`        | Leader Hub — Beban kerja                    | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
 | `07-leader-hub-hambatan.webp`           | Leader Hub — Hambatan                       | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
 | `08-leader-hub-alur-kualitas.webp`      | Leader Hub — Alur & Kualitas                | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
-| `09-leader-hub-laporan-berkala.webp`    | Leader Hub — Laporan berkala                | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
+| `09-leader-hub-laporan-berkala.webp`    | Leader Hub — Laporan tim                    | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
 | `10-leader-hub-detail-feature.webp`     | Leader Hub — Detail Feature                 | LEADER-PIPELINE-HUB | Ada          | Ikuti pola HP |
 
 Pola HP: Sidebar menjadi menu di atas, kartu turun satu kolom, tabel lebar bergulir horizontal.
@@ -47,3 +47,7 @@ cwebp -q 80 /tmp/01-laporan-saya.png -o docs/plans/work-visibility/design/01-lap
 
 Ekspor ulang hanya layar yang berubah, dan hanya saat gerbang (G2 atau revisi yang disetujui),
 bukan setiap iterasi canvas.
+
+## Nama layar (UX-NAV-CLARITY, 2026-11-19)
+
+Nama file gambar tetap agar tautan lama tidak putus. Label di gambar 02, 03, dan 06–10 sudah diperbarui: menu Ringkasan menjadi Beranda, tab Leader Hub Ringkasan menjadi Ikhtisar, Anggota & Akses menjadi Tim & Akses, Laporan berkala menjadi Laporan tim, dan tab Bug & SLA dihapus dari Leader Hub. Gambar 05 dan sumber canvas lain masih memakai label lama di sidebar.

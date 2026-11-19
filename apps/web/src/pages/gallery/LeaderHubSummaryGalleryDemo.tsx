@@ -21,7 +21,7 @@ const DEMO_STATES = [
 ];
 
 const LEADER_TABS = [
-  { id: 'summary', label: 'Ringkasan' },
+  { id: 'summary', label: 'Ikhtisar' },
   { id: 'workload', label: 'Beban kerja' },
   { id: 'blockers', label: 'Hambatan' },
   { id: 'quality', label: 'Kualitas' },
