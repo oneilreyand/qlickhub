@@ -9,6 +9,7 @@ import { leaderService } from '../../lib/api/leaderService';
 import { useAppDispatch } from '../../store/hooks';
 import { enqueueSnackbar } from '../../store/uiSlice';
 import { mapLeaderPipeline } from './mapLeaderPipeline';
+import { useLeaderLiveUpdates } from './useLeaderLiveUpdates';
 
 const PREVIEW = 4;
 
@@ -23,24 +24,33 @@ export const LeaderSummaryTab: React.FC<{ workspaceIds?: string[] }> = ({ worksp
   const [state, setState] = useState<LeaderHubSummaryState>({ status: 'loading' });
   const [pingingId, setPingingId] = useState<string | null>(null);
   const [showAllBlockers, setShowAllBlockers] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const key = workspaceIds?.join(',') ?? '';
 
-  const load = useCallback(async () => {
-    setState({ status: 'loading' });
-    try {
-      const data = await leaderService.getPipeline(key ? key.split(',') : undefined);
-      setSummary(data);
-      setState({ status: 'ready', data: mapLeaderPipeline(data) });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Ringkasan gagal dimuat.';
-      const status = (error as { status?: number } | null)?.status;
-      setState(status === 403 ? { status: 'denied' } : { status: 'error', message });
-    }
-  }, [key]);
+  /** `silent` refreshes (live updates) keep the current view instead of showing the skeleton. */
+  const load = useCallback(
+    async (silent = false) => {
+      if (!silent) setState({ status: 'loading' });
+      try {
+        const data = await leaderService.getPipeline(key ? key.split(',') : undefined);
+        setSummary(data);
+        setState({ status: 'ready', data: mapLeaderPipeline(data) });
+        setUpdatedAt(new Date());
+      } catch (error) {
+        if (silent) return;
+        const message = error instanceof Error ? error.message : 'Ringkasan gagal dimuat.';
+        const status = (error as { status?: number } | null)?.status;
+        setState(status === 403 ? { status: 'denied' } : { status: 'error', message });
+      }
+    },
+    [key],
+  );
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  const liveStatus = useLeaderLiveUpdates(() => void load(true), state.status !== 'denied');
 
   const blockerOf = (id: string) => summary?.openBlockers.find((blocker) => blocker.id === id);
 
@@ -98,6 +108,7 @@ export const LeaderSummaryTab: React.FC<{ workspaceIds?: string[] }> = ({ worksp
       onOpenBlocker={openBlocker}
       onSeeAllBlockers={showAllBlockers ? undefined : () => setShowAllBlockers(true)}
       blockerPreviewLimit={showAllBlockers ? Number.MAX_SAFE_INTEGER : PREVIEW}
+      live={{ status: liveStatus, updatedAt }}
     />
   );
 };

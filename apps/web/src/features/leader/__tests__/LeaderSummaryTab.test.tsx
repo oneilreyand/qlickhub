@@ -1,9 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LeaderPipelineSummary } from '@qlick/contracts';
 import uiReducer from '../../../store/uiSlice';
 import { LeaderSummaryTab } from '../LeaderSummaryTab';
@@ -168,5 +168,67 @@ describe('LeaderSummaryTab (LEADER-PIPELINE-HUB P2)', () => {
     expect(await screen.findByText('Server sibuk')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Coba lagi/ }));
     expect(await screen.findByText('Refund otomatis')).toBeInTheDocument();
+  });
+
+  describe('live updates (P5)', () => {
+    class FakeEventSource {
+      static last: FakeEventSource | null = null;
+      listeners = new Map<string, () => void>();
+      onerror: (() => void) | null = null;
+      closed = false;
+      constructor(public url: string) {
+        FakeEventSource.last = this;
+      }
+      addEventListener(name: string, fn: () => void) {
+        this.listeners.set(name, fn);
+      }
+      close() {
+        this.closed = true;
+      }
+      emit(name: string) {
+        this.listeners.get(name)?.();
+      }
+    }
+
+    beforeEach(() => {
+      vi.stubGlobal('EventSource', FakeEventSource);
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    });
+
+    it('opens the leader stream and reloads silently, debounced, when a Workspace changes', async () => {
+      service.getPipeline.mockResolvedValue(summary);
+      renderTab();
+      expect(await screen.findByText('Refund otomatis')).toBeInTheDocument();
+      const source = FakeEventSource.last!;
+      expect(source.url).toMatch(/\/leader\/stream$/);
+      act(() => source.emit('leader:ready'));
+      expect(screen.getByRole('status', { name: '' })).toHaveTextContent(/Langsung/);
+
+      vi.useFakeTimers();
+      act(() => {
+        source.emit('leader:pipeline_changed');
+        source.emit('leader:pipeline_changed');
+      });
+      expect(service.getPipeline).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        vi.advanceTimersByTime(2100);
+      });
+      expect(service.getPipeline).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
+      // The summary stays on screen during the silent reload.
+      expect(screen.getByText('Refund otomatis')).toBeInTheDocument();
+    });
+
+    it('falls back to periodic refresh while the stream is down', async () => {
+      service.getPipeline.mockResolvedValue(summary);
+      renderTab();
+      await screen.findByText('Refund otomatis');
+      act(() => FakeEventSource.last!.onerror?.());
+      expect(screen.getByText(/Menyambung ulang/)).toBeInTheDocument();
+      expect(FakeEventSource.last!.closed).toBe(true);
+    });
   });
 });

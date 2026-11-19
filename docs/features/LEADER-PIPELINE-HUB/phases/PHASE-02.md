@@ -1,6 +1,6 @@
 # LEADER-PIPELINE-HUB — Tahap 4: Build Phase 02 — Tab Ringkasan
 
-**Status:** Kandidat teruji
+**Status:** Di main
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-2.1, AC-2.2, AC-4.2 (serta sisa AC-3.1 di Timeline)
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, FLOW-011, FLOW-013
