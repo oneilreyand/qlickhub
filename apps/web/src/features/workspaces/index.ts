@@ -11,3 +11,4 @@ export { OnboardingStepIndicator } from '../../components/ui/organisms/onboardin
 export { OnboardingWelcomeStep } from '../../components/ui/organisms/onboarding/OnboardingWelcomeStep';
 export { OnboardingWorkspaceStep } from '../../components/ui/organisms/onboarding/OnboardingWorkspaceStep';
 export { WorkCalendarSettings } from './WorkCalendarSettings';
+export { WorkspaceAuditLog } from './WorkspaceAuditLog';

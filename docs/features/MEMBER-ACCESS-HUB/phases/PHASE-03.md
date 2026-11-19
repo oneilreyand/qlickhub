@@ -1,6 +1,6 @@
 # MEMBER-ACCESS-HUB — Tahap 4: Build Phase 03 — Kirim ulang / batalkan undangan
 
-**Status:** Kandidat teruji
+**Status:** Di main (#147)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-3.1, AC-3.2, AC-3.3
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, AUTH-001, AUTH-014
