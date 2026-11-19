@@ -29,7 +29,7 @@ describe('WorkCalendarCard (WORK-FOUNDATION P2)', () => {
   it('saves a changed time zone and working days', () => {
     const onSave = vi.fn();
     render(<WorkCalendarCard {...baseProps} onSave={onSave} />);
-    const save = screen.getByRole('button', { name: 'Simpan kalender' });
+    const save = screen.getByRole('button', { name: 'Simpan perubahan' });
     expect(save).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText('Zona waktu'), { target: { value: 'Asia/Makassar' } });
@@ -47,7 +47,7 @@ describe('WorkCalendarCard (WORK-FOUNDATION P2)', () => {
     const onSave = vi.fn();
     render(<WorkCalendarCard {...baseProps} onSave={onSave} />);
     const input = screen.getByLabelText('Kapasitas default (poin per minggu)');
-    const save = screen.getByRole('button', { name: 'Simpan kalender' });
+    const save = screen.getByRole('button', { name: 'Simpan perubahan' });
 
     fireEvent.change(input, { target: { value: '0' } });
     expect(screen.getByText('Isi bilangan bulat 1–200.')).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('WorkCalendarCard (WORK-FOUNDATION P2)', () => {
     render(<WorkCalendarCard {...baseProps} calendar={{ ...calendar, workingDays: [1] }} />);
     fireEvent.click(screen.getByRole('button', { name: 'Senin' }));
     expect(screen.getByText('Pilih minimal satu hari kerja.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Simpan kalender' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Simpan perubahan' })).toBeDisabled();
   });
 
   it('adds and removes holidays', async () => {
@@ -104,7 +104,7 @@ describe('WorkCalendarCard (WORK-FOUNDATION P2)', () => {
     expect(screen.getByLabelText('Zona waktu')).toBeDisabled();
     expect(screen.getByLabelText('Kapasitas default (poin per minggu)')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Senin' })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: 'Simpan kalender' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Simpan perubahan' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Tambah' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Hapus hari libur/ })).not.toBeInTheDocument();
   });

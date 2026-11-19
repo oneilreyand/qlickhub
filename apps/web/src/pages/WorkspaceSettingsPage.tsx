@@ -13,7 +13,6 @@ import type { QaAssuranceRolloutSettings } from '@qlick/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { selectCurrentUserRole } from '../store/authSlice';
 import { workspaceService } from '../lib/api/workspaceService';
-import { Building2 } from 'lucide-react';
 import {
   EmptyWorkspaceOnboarding,
   WorkspaceGeneralSettingsForm,
@@ -24,7 +23,7 @@ import {
   WorkspaceAuditLog,
 } from '../features/workspaces';
 import { resolveSettingsTab, visibleSettingsTabs } from '../features/workspaces/settingsTabs';
-import { Tabs } from '../components/ui/molecules/Tabs';
+import { WorkspaceSettingsNav } from '../features/workspaces/WorkspaceSettingsNav';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { Button } from '../components/ui/atoms/Button';
 import { Input } from '../components/ui/atoms/Input';
@@ -278,141 +277,148 @@ export const WorkspaceSettingsPage: React.FC = () => {
 
   return (
     <div className="w-full space-y-8 pb-12 animate-fadeIn">
-      {/* Page Header */}
-      <div className="border-b border-stone-200 pb-5 dark:border-stone-800">
-        <div className="flex items-center gap-2 text-xs font-semibold text-stone-700 dark:text-[#B1E743]">
-          <Building2 className="h-4 w-4" />
-          <span>Pengelolaan Workspace</span>
-        </div>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl dark:text-stone-100">
-          {activeWorkspace ? activeWorkspace.name : 'Pengaturan Workspace'}
+      <header className="space-y-1">
+        <p className="text-sm text-stone-500 dark:text-stone-400">Pengaturan Workspace</p>
+        <h1 className="text-2xl font-extrabold tracking-tight text-stone-900 sm:text-3xl dark:text-stone-100">
+          {activeWorkspace.name}
         </h1>
-        <p className="mt-1 text-xs text-stone-500 sm:text-sm dark:text-stone-400">
-          Atur workspace ini: profil, kalender, kebijakan, QA, dan log audit.
-        </p>
         {isArchived && (
-          <p className="mt-3 text-sm font-semibold text-amber-700 dark:text-amber-300">
+          <p className="pt-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
             Workspace ini telah diarsipkan dan hanya dapat dilihat.
           </p>
         )}
-      </div>
+      </header>
 
-      <Tabs
-        tabs={settingsTabs}
-        activeTabId={activeTab}
-        onChange={handleTabChange}
-        ariaLabel="Bagian pengaturan workspace"
-      />
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <nav aria-label="Bagian pengaturan" className="lg:sticky lg:top-6 lg:w-56 lg:shrink-0">
+          <WorkspaceSettingsNav
+            tabs={settingsTabs}
+            activeTabId={activeTab}
+            onChange={handleTabChange}
+            ariaLabel="Bagian pengaturan workspace"
+            dangerTabId="bahaya"
+          />
+        </nav>
 
-      <div role="tabpanel" aria-label={settingsTabs.find((tab) => tab.id === activeTab)?.label}>
-        {activeTab === 'umum' && (
-          <div className="max-w-2xl">
-            <WorkspaceGeneralSettingsForm
-              workspaceName={workspaceName}
-              workspaceDesc={workspaceDesc}
-              onNameChange={setWorkspaceName}
-              onDescChange={setWorkspaceDesc}
-              onSubmit={handleSaveDetails}
-              isSaving={isSavingDetails}
-              canManage={canManageMembers && !isArchived}
-            />
+        <div className="min-w-0 flex-1">
+          <div
+            role="tabpanel"
+            aria-labelledby={`settings-tab-${activeTab}`}
+            aria-label={settingsTabs.find((tab) => tab.id === activeTab)?.label}
+          >
+            {activeTab === 'umum' && (
+              <div className="max-w-2xl">
+                <WorkspaceGeneralSettingsForm
+                  workspaceName={workspaceName}
+                  workspaceDesc={workspaceDesc}
+                  onNameChange={setWorkspaceName}
+                  onDescChange={setWorkspaceDesc}
+                  onSubmit={handleSaveDetails}
+                  isSaving={isSavingDetails}
+                  canManage={canManageMembers && !isArchived}
+                />
+              </div>
+            )}
+
+            {activeTab === 'kalender' && (
+              <div className="max-w-4xl">
+                <WorkCalendarSettings
+                  key={activeWorkspace.id}
+                  workspaceId={activeWorkspace.id}
+                  canManage={canManageMembers && !isArchived}
+                />
+              </div>
+            )}
+
+            {activeTab === 'anggota' && (
+              <div className="space-y-4">
+                <Alert tone="info" title="Daftar ini hanya untuk dilihat">
+                  {canManageMembers ? (
+                    <>
+                      Undang, ubah peran, atur kapasitas & cuti, atau reset kata sandi di{' '}
+                      <Link to="/members" className="font-semibold underline">
+                        Tim & Akses
+                      </Link>
+                      .
+                    </>
+                  ) : (
+                    'Perubahan anggota dilakukan oleh Owner atau Admin workspace.'
+                  )}
+                </Alert>
+                <WorkspaceMembersTable
+                  members={members}
+                  isLoading={isMembersLoading}
+                  canManageMembers={false}
+                  managerRole={null}
+                  searchQuery={searchMember}
+                  onSearchChange={setSearchMember}
+                  onInviteClick={noop}
+                  onRoleChange={noop}
+                  onRemoveMember={noop}
+                  onResetPasswordClick={noop}
+                />
+              </div>
+            )}
+
+            {activeTab === 'alur' && (
+              <div className="max-w-2xl">
+                <WorkspaceTaskPolicyCard
+                  allowQaTaskCreation={allowQaTaskCreation}
+                  canManage={canManageMembers && !isArchived}
+                  isUpdating={isUpdatingPolicy}
+                  onToggle={(checked) => void handleToggleQaPolicy(checked)}
+                />
+              </div>
+            )}
+
+            {activeTab === 'qa' && (
+              <div className="max-w-2xl">
+                <QaAssuranceRolloutCard
+                  settings={qaAssuranceRollout}
+                  isLoading={isQaAssuranceRolloutLoading}
+                  error={qaAssuranceRolloutError}
+                  canManage={canManageMembers && !isArchived}
+                  isSaving={isSavingQaAssuranceRollout}
+                  onRetry={() => void loadQaAssuranceRollout(activeWorkspace.id)}
+                  onSave={(input) => void handleSaveQaAssuranceRollout(input)}
+                />
+              </div>
+            )}
+
+            {activeTab === 'audit' && (
+              <div className="max-w-3xl">
+                <WorkspaceAuditLog key={activeWorkspace.id} workspaceId={activeWorkspace.id} />
+              </div>
+            )}
+
+            {activeTab === 'bahaya' && (
+              <section className="max-w-2xl space-y-3 rounded-2xl border border-red-200 bg-red-50/40 p-5 dark:border-red-900/60 dark:bg-red-950/20">
+                <h2 className="text-sm font-bold text-red-800 dark:text-red-300">Zona bahaya</h2>
+                <p className="text-xs text-stone-600 dark:text-stone-400">
+                  {isArchived
+                    ? 'Workspace diarsipkan. Pulihkan agar tim bisa bekerja lagi, atau hapus permanen beserta seluruh datanya.'
+                    : 'Mengarsipkan membuat workspace hanya bisa dilihat. Hapus permanen hanya tersedia setelah workspace diarsipkan.'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={isArchived ? 'secondary' : 'destructive'}
+                    onClick={() => setIsArchiveModalOpen(true)}
+                  >
+                    {isArchived ? 'Pulihkan Workspace' : 'Arsipkan Workspace'}
+                  </Button>
+                  {canDeleteWorkspace && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => setIsDeleteWorkspaceModalOpen(true)}
+                    >
+                      Hapus Permanen
+                    </Button>
+                  )}
+                </div>
+              </section>
+            )}
           </div>
-        )}
-
-        {activeTab === 'kalender' && (
-          <div className="max-w-2xl">
-            <WorkCalendarSettings
-              key={activeWorkspace.id}
-              workspaceId={activeWorkspace.id}
-              canManage={canManageMembers && !isArchived}
-            />
-          </div>
-        )}
-
-        {activeTab === 'anggota' && (
-          <div className="space-y-4">
-            <Alert tone="info" title="Daftar ini hanya untuk dilihat">
-              {canManageMembers ? (
-                <>
-                  Undang, ubah peran, atur kapasitas & cuti, atau reset kata sandi di{' '}
-                  <Link to="/members" className="font-semibold underline">
-                    Tim & Akses
-                  </Link>
-                  .
-                </>
-              ) : (
-                'Perubahan anggota dilakukan oleh Owner atau Admin workspace.'
-              )}
-            </Alert>
-            <WorkspaceMembersTable
-              members={members}
-              isLoading={isMembersLoading}
-              canManageMembers={false}
-              managerRole={null}
-              searchQuery={searchMember}
-              onSearchChange={setSearchMember}
-              onInviteClick={noop}
-              onRoleChange={noop}
-              onRemoveMember={noop}
-              onResetPasswordClick={noop}
-            />
-          </div>
-        )}
-
-        {activeTab === 'alur' && (
-          <div className="max-w-2xl">
-            <WorkspaceTaskPolicyCard
-              allowQaTaskCreation={allowQaTaskCreation}
-              canManage={canManageMembers && !isArchived}
-              isUpdating={isUpdatingPolicy}
-              onToggle={(checked) => void handleToggleQaPolicy(checked)}
-            />
-          </div>
-        )}
-
-        {activeTab === 'qa' && (
-          <div className="max-w-2xl">
-            <QaAssuranceRolloutCard
-              settings={qaAssuranceRollout}
-              isLoading={isQaAssuranceRolloutLoading}
-              error={qaAssuranceRolloutError}
-              canManage={canManageMembers && !isArchived}
-              isSaving={isSavingQaAssuranceRollout}
-              onRetry={() => void loadQaAssuranceRollout(activeWorkspace.id)}
-              onSave={(input) => void handleSaveQaAssuranceRollout(input)}
-            />
-          </div>
-        )}
-
-        {activeTab === 'audit' && (
-          <div className="max-w-3xl">
-            <WorkspaceAuditLog key={activeWorkspace.id} workspaceId={activeWorkspace.id} />
-          </div>
-        )}
-
-        {activeTab === 'bahaya' && (
-          <section className="max-w-2xl space-y-3 rounded-2xl border border-red-200 bg-red-50/40 p-5 dark:border-red-900/60 dark:bg-red-950/20">
-            <h2 className="text-sm font-bold text-red-800 dark:text-red-300">Zona bahaya</h2>
-            <p className="text-xs text-stone-600 dark:text-stone-400">
-              {isArchived
-                ? 'Workspace diarsipkan. Pulihkan agar tim bisa bekerja lagi, atau hapus permanen beserta seluruh datanya.'
-                : 'Mengarsipkan membuat workspace hanya bisa dilihat. Hapus permanen hanya tersedia setelah workspace diarsipkan.'}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={isArchived ? 'secondary' : 'destructive'}
-                onClick={() => setIsArchiveModalOpen(true)}
-              >
-                {isArchived ? 'Pulihkan Workspace' : 'Arsipkan Workspace'}
-              </Button>
-              {canDeleteWorkspace && (
-                <Button variant="destructive" onClick={() => setIsDeleteWorkspaceModalOpen(true)}>
-                  Hapus Permanen
-                </Button>
-              )}
-            </div>
-          </section>
-        )}
+        </div>
       </div>
 
       {/* Modal: Archive / Restore Workspace Confirmation */}
@@ -517,7 +523,6 @@ export const WorkspaceSettingsPage: React.FC = () => {
           </div>
         </div>
       </Modal>
-
     </div>
   );
 };

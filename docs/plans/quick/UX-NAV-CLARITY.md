@@ -16,6 +16,7 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Nama: menu "Ringkasan" → "Beranda"; tab Leader Hub "Ringkasan" → "Ikhtisar", "Laporan" → "Laporan tim"; "Anggota & Akses" → "Tim & Akses" (menu, judul halaman, label header, halaman akses ditolak).
 - Tim & Akses menjadi satu-satunya tempat mengelola orang: klik nama membuka panel orang (`features/memberAccess/MemberPersonPanel.tsx`) berisi ringkasan akses per workspace, kapasitas & cuti (`MyCapacitySettings userId`), dan reset kata sandi lewat salah satu workspace yang dikelola (backend tetap menegakkan aturan Owner/Admin).
 - Pengaturan Workspace › tab "Anggota" → "Daftar anggota" yang hanya dibaca, dengan tautan ke Tim & Akses untuk Owner/Admin; aksi undang, ubah peran, keluarkan, kapasitas, dan reset kata sandi dihapus dari halaman ini.
+- Pengaturan Workspace mengikuti desain `05-pengaturan-kalender-kapasitas.webp`: judul "Pengaturan Workspace" + nama workspace, daftar bagian di samping (baris bergulir di HP, Zona Bahaya merah), tab Kalender & Kapasitas dibagi menjadi kartu Kalender kerja dan Effort & kapasitas (skala effort XS–XL, tautan ke Tim & Akses) dengan satu tombol Batal/Simpan perubahan (`features/workspaces/WorkspaceSettingsNav.tsx`, `WorkCalendarCard.tsx`). Bagian desain yang belum punya backend tidak dibuat: Ambang laporan, Notifikasi, Integrasi, Impor libur nasional.
 - Leader Hub tetap hanya untuk membaca. Tab "Bug & SLA" dihapus dari desain; angka bug/SLA nanti masuk Alur & Kualitas (setelah BUG-INTAKE-SLA G0/G1).
 - Dokumen: PRD dan breakdown LEADER-PIPELINE-HUB (REQ-11 "Laporan tim"), README MEMBER-ACCESS-HUB, 3_UI_ATOMIC_DESIGN_SYSTEM, FEATURE_CATALOG, README desain; canvas desain dan gambar 02, 03, 06–10 diperbarui.
 - Bukan scope: route (tetap `/work?tab=overview`, `/members`, `/leader`), API, kontrak, migrasi, dokumen ADR/Tier 2, fase historis.
@@ -45,4 +46,5 @@ Status yang diizinkan: Draft, Menunggu persetujuan, Disetujui, Selesai, Blocked.
 - Screenshot Playwright pada harness lokal sementara (tidak di-commit): panel orang di Tim & Akses desktop 1280 dan HP 390.
 - Canvas desain diperbarui; gambar 02, 03, 06–10 diekspor ulang dengan label baru.
 - Tier: Tier 1 (tidak menyentuh path Tier 2).
+- Screenshot Pengaturan Workspace desktop 1200 dan HP 390 dibandingkan dengan desain 05.
 - Gap: sidebar di gambar 01, 04, 05 dan artboard canvas lain masih memakai label lama; "Ringkasan" masih dipakai sebagai nama bagian di dalam beberapa halaman (bukan nama menu).
