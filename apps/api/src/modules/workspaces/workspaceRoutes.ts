@@ -1,4 +1,7 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
+import type { AuthenticatedRequest } from '../../http/middleware/authenticate.js';
+import { sendProblemDetails } from '../../http/problemDetails.js';
+import { updateMemberExpiry } from './internal/memberExpiry.js';
 import { authenticate } from '../../http/middleware/authenticate.js';
 import {
   requireWorkspaceMember,
@@ -92,6 +95,24 @@ workspaceRoutes.delete(
   '/:workspaceId/members/:memberUserId',
   requireWorkspaceMember(['owner', 'admin']),
   removeWorkspaceMember,
+);
+// MEMBER-ACCESS-HUB P5 (ADR-046): set, extend or remove the end date of someone's access.
+workspaceRoutes.put(
+  '/:workspaceId/members/:memberUserId/expiry',
+  requireWorkspaceMember(['owner', 'admin']),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const data = await updateMemberExpiry(
+        req.params.workspaceId,
+        req.user!.userId,
+        req.params.memberUserId,
+        req.body,
+      );
+      return res.status(200).json({ data });
+    } catch (error) {
+      return sendProblemDetails(res, error);
+    }
+  },
 );
 
 // Task creation permissions ("Izin Khusus" - Only owner/admin)

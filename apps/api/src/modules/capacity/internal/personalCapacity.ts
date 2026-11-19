@@ -30,10 +30,10 @@ export async function canManagePersonalCapacity(
     `SELECT 1 AS ok
        FROM workspace_members leader
        JOIN workspace_members target
-         ON target.workspace_id = leader.workspace_id AND target.deleted_at IS NULL
+         ON target.workspace_id = leader.workspace_id AND target.deleted_at IS NULL AND (target.expires_at IS NULL OR target.expires_at > now())
        JOIN workspaces w ON w.id = leader.workspace_id AND w.archived_at IS NULL
       WHERE leader.user_id = :actorId
-        AND leader.deleted_at IS NULL
+        AND leader.deleted_at IS NULL AND (leader.expires_at IS NULL OR leader.expires_at > now())
         AND leader.role IN ('owner', 'admin')
         AND target.user_id = :targetUserId
       LIMIT 1`,
@@ -56,7 +56,7 @@ async function smallestWorkspaceDefault(userId: string): Promise<number | null> 
     `SELECT MIN(w.default_weekly_capacity_points)::int AS points
        FROM workspace_members m
        JOIN workspaces w ON w.id = m.workspace_id AND w.archived_at IS NULL
-      WHERE m.user_id = :userId AND m.deleted_at IS NULL`,
+      WHERE m.user_id = :userId AND m.deleted_at IS NULL AND (m.expires_at IS NULL OR m.expires_at > now())`,
     { type: QueryTypes.SELECT, replacements: { userId } },
   );
   return row?.points ?? null;
@@ -74,7 +74,7 @@ export async function getEffectiveWeeklyCapacities(
       `SELECT m.user_id, MIN(w.default_weekly_capacity_points)::int AS points
          FROM workspace_members m
          JOIN workspaces w ON w.id = m.workspace_id AND w.archived_at IS NULL
-        WHERE m.user_id IN (:userIds) AND m.deleted_at IS NULL
+        WHERE m.user_id IN (:userIds) AND m.deleted_at IS NULL AND (m.expires_at IS NULL OR m.expires_at > now())
         GROUP BY m.user_id`,
       { type: QueryTypes.SELECT, replacements: { userIds } },
     ),

@@ -6,6 +6,7 @@ import { Select } from '../atoms/Select';
 import {
   MEMBER_ROLE_LABEL,
   cellLabel,
+  expiryLastDay,
   filterPeople,
   initials,
   type MemberAccessFilter,
@@ -230,20 +231,42 @@ export const MemberAccessMatrix: React.FC<MemberAccessMatrixProps> = ({
                         person.userId === currentUserId;
                       if (membership) {
                         const label = cellLabel(membership.role, membership.specialties);
+                        const expiryNote = membership.expired
+                          ? 'Akses berakhir'
+                          : membership.expiresAt
+                            ? `s/d ${expiryLastDay(membership.expiresAt)}`
+                            : null;
+                        const expiryTag = expiryNote && (
+                          <span
+                            className={`block text-[11px] font-medium ${
+                              membership.expired
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : 'text-amber-700 dark:text-amber-300'
+                            }`}
+                          >
+                            {expiryNote}
+                          </span>
+                        );
                         return (
                           <td key={workspace.id} className="px-3 py-3">
                             {readOnly ? (
                               <span className="inline-flex min-h-[40px] items-center rounded-xl px-3 text-sm font-semibold text-stone-700 dark:text-stone-300">
-                                {label}
+                                <span>
+                                  {label}
+                                  {expiryTag}
+                                </span>
                               </span>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => onEditCell({ person, workspaceId: workspace.id })}
-                                aria-label={`Ubah akses ${person.name} di ${workspace.name}: ${label}`}
+                                aria-label={`Ubah akses ${person.name} di ${workspace.name}: ${label}${expiryNote ? `, ${expiryNote}` : ''}`}
                                 className="inline-flex min-h-[40px] items-center gap-1 whitespace-nowrap rounded-xl border border-stone-200 px-3 text-sm font-semibold text-stone-800 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-100 dark:hover:bg-stone-800"
                               >
-                                {label}
+                                <span className="text-left">
+                                  {label}
+                                  {expiryTag}
+                                </span>
                                 <ChevronDown
                                   className="h-3.5 w-3.5 text-stone-400"
                                   aria-hidden="true"

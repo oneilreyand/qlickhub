@@ -198,6 +198,32 @@ dengan jumlah task dan pengingat. `cron.job_run_details` tidak dibersihkan otoma
 secara berkala. Untuk rotasi secret, perbarui Vercel dan Vault bersamaan (`vault.update_secret`).
 Untuk menonaktifkan: `select cron.unschedule('qlickhub-deadline-reminders');`.
 
+**Job kedua — akses berbatas waktu (MEMBER-ACCESS-HUB P5).** `POST /v1/cron/membership-expiry`
+hanya mencatat activity `membership_expired` untuk keanggotaan yang `expires_at`-nya sudah lewat;
+akses sudah ditolak tanpa job ini. Memakai secret yang sama. Setelah job pengingat di atas terpasang:
+
+```sql
+select vault.create_secret('https://qlickhub.vercel.app/v1/cron/membership-expiry', 'qlickhub_membership_expiry_url');
+select cron.schedule(
+  'qlickhub-membership-expiry',
+  '17 * * * *',
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'qlickhub_membership_expiry_url'),
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'qlickhub_cron_secret')
+    ),
+    body := '{}'::jsonb,
+    timeout_milliseconds := 30000
+  );
+  $$
+);
+```
+
+Log API mencatat event `cron.membership_expiry` dengan `recordedCount`. Nonaktifkan dengan
+`select cron.unschedule('qlickhub-membership-expiry');`.
+
 ### Release-only dan test-only
 
 - `MIGRATION_DATABASE_URL` adalah koneksi Session Pooler/direct yang lebih berhak. Inject hanya

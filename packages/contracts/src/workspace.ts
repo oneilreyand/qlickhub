@@ -66,6 +66,8 @@ export const WorkspaceMemberSchema = z.object({
     })
     .optional(),
   joinedAt: z.string(),
+  /** MEMBER-ACCESS-HUB P5: end of access; null/absent = no end date. */
+  expiresAt: z.string().nullable().optional(),
 });
 
 export type WorkspaceMember = z.infer<typeof WorkspaceMemberSchema>;

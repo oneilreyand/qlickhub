@@ -11,12 +11,16 @@ export function assertCanReadQaDocuments(role: WorkspaceRole): void {
 
 export function assertCanCreateQaDocument(role: WorkspaceRole): void {
   if (role === 'owner' || role === 'admin' || role === 'qa') return;
-  throw new Error('FORBIDDEN: Only QA Engineer, Admin, or Owner members can create or edit QA documents.');
+  throw new Error(
+    'FORBIDDEN: Only QA Engineer, Admin, or Owner members can create or edit QA documents.',
+  );
 }
 
 export function assertCanManageProductBrief(role: WorkspaceRole): void {
   if (isPlanner(role)) return;
-  throw new Error('FORBIDDEN: Only Product Owner, Admin, or Owner members can create or update a Product Brief.');
+  throw new Error(
+    'FORBIDDEN: Only Product Owner, Admin, or Owner members can create or update a Product Brief.',
+  );
 }
 
 export function assertCanLinkQaDocument(
@@ -25,7 +29,7 @@ export function assertCanLinkQaDocument(
   task: {
     parentTaskId?: string | null;
     assigneeId?: string | null;
-  }
+  },
 ): void {
   if (role === 'owner' || role === 'admin') return;
 
@@ -33,12 +37,16 @@ export function assertCanLinkQaDocument(
 
   if (isSubtask) {
     if (role === 'qa' || (task.assigneeId && task.assigneeId === actorId)) return;
-    throw new Error('FORBIDDEN: Only QA members or project administrators can link QA documents to subtasks.');
+    throw new Error(
+      'FORBIDDEN: Only QA members or project administrators can link QA documents to subtasks.',
+    );
   }
 
   if (role === 'qa') {
     return;
   }
 
-  throw new Error('FORBIDDEN: Only QA Engineer, Admin, or Owner members can link QA documents to this task.');
+  throw new Error(
+    'FORBIDDEN: Only QA Engineer, Admin, or Owner members can link QA documents to this task.',
+  );
 }

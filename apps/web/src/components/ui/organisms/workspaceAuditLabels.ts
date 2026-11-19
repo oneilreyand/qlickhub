@@ -24,6 +24,12 @@ export function auditActionLabel(item: WorkspaceActivityItem): string {
     }
     case 'member_specialties_updated':
       return 'mengubah spesialisasi';
+    case 'member_expiry_updated':
+      return meta.expiresOn
+        ? `memberi batas akses sampai ${meta.expiresOn} untuk`
+        : 'menghapus batas akses';
+    case 'membership_expired':
+      return 'mencatat akses berakhir untuk';
     case 'workspace_archived':
       return 'mengarsipkan workspace';
     case 'workspace_restored':

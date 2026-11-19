@@ -1,4 +1,4 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, Op, Optional } from 'sequelize';
 import { sequelize } from '../sequelize.js';
 import { WorkspaceRole } from '@qlick/contracts';
 
@@ -11,11 +11,13 @@ export interface WorkspaceMemberAttributes {
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
+  /** MEMBER-ACCESS-HUB P5: null = no end date; past = inactive (AUTH-001). */
+  expiresAt?: Date | null;
 }
 
 export interface WorkspaceMemberCreationAttributes extends Optional<
   WorkspaceMemberAttributes,
-  'id' | 'role' | 'joinedAt' | 'deletedAt'
+  'id' | 'role' | 'joinedAt' | 'deletedAt' | 'expiresAt'
 > {}
 
 export class WorkspaceMemberModel
@@ -30,6 +32,7 @@ export class WorkspaceMemberModel
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
   declare deletedAt: Date | null;
+  declare expiresAt: Date | null;
 }
 
 WorkspaceMemberModel.init(
@@ -65,6 +68,11 @@ WorkspaceMemberModel.init(
       allowNull: true,
       field: 'deleted_at',
     },
+    expiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'expires_at',
+    },
   },
   {
     sequelize,
@@ -72,5 +80,15 @@ WorkspaceMemberModel.init(
     timestamps: true,
     paranoid: true,
     underscored: true,
+    /**
+     * MEMBER-ACCESS-HUB P5 (ADR-046, AUTH-001): an expired membership behaves like no membership
+     * for every query, including includes and the membership middleware. Code that must see
+     * expired rows (the access hub, restore on re-invite, the expiry job) uses `.unscoped()`.
+     */
+    defaultScope: {
+      where: {
+        [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: sequelize.fn('NOW') } }],
+      },
+    },
   },
 );

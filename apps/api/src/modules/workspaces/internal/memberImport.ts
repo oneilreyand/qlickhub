@@ -99,19 +99,22 @@ async function validateRows(
     });
     const emailByUserId = new Map(users.map((user) => [user.id, user.email.toLowerCase()]));
     if (users.length > 0) {
-      const memberships = await WorkspaceMemberModel.findAll({
+      const memberships = await WorkspaceMemberModel.unscoped().findAll({
         where: {
           userId: { [Op.in]: users.map((user) => user.id) },
           workspaceId: { [Op.in]: Array.from(workspaceById.keys()) },
         },
-        attributes: ['userId', 'workspaceId', 'deletedAt'],
+        attributes: ['userId', 'workspaceId', 'deletedAt', 'expiresAt'],
         paranoid: false,
         transaction,
       });
       for (const membership of memberships) {
         existing.set(
           `${emailByUserId.get(membership.userId)}|${membership.workspaceId}`,
-          membership.deletedAt ? 'removed' : 'active',
+          membership.deletedAt ||
+            (membership.expiresAt && new Date(membership.expiresAt).getTime() <= Date.now())
+            ? 'removed'
+            : 'active',
         );
       }
     }
