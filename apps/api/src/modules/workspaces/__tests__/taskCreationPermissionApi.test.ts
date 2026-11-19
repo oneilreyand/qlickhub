@@ -75,13 +75,13 @@ describe('Task Creation Permissions API Tests (P1 Remediation)', () => {
             workspaceId: workspace.id,
             folderId: folder.id,
             title: 'Unauthorized Parent Task',
-          })
+          }),
         );
       },
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
   });
 
@@ -105,7 +105,7 @@ describe('Task Creation Permissions API Tests (P1 Remediation)', () => {
         workspaceId: workspace.id,
         folderId: folder.id,
         title: 'Authorized Task Created By Dev',
-      })
+      }),
     );
 
     assert.strictEqual(createdTask.title, 'Authorized Task Created By Dev');
@@ -124,13 +124,13 @@ describe('Task Creation Permissions API Tests (P1 Remediation)', () => {
             workspaceId: workspace.id,
             folderId: folder.id,
             title: 'Task Attempt After Revoke',
-          })
+          }),
         );
       },
       (err: any) => {
         assert.ok(String(err.message).includes('FORBIDDEN'));
         return true;
-      }
+      },
     );
   });
 });

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { ChevronDown, Plus, Search } from 'lucide-react';
-import type { MemberAccessOverview, WorkspaceRole } from '@qlick/contracts';
+import type { MemberAccessOverview, MemberAccessPerson, WorkspaceRole } from '@qlick/contracts';
 import { Input } from '../atoms/Input';
 import { Select } from '../atoms/Select';
 import {
@@ -26,6 +26,16 @@ export interface MemberAccessMatrixProps {
   onFilterChange: (filter: MemberAccessFilter) => void;
   onEditCell: (target: MemberCellTarget) => void;
   currentUserId: string | null;
+  /** P3: pending invitations. */
+  onResendInvite?: (person: MemberAccessPerson) => void;
+  onCancelInvite?: (person: MemberAccessPerson) => void;
+  busyUserId?: string | null;
+}
+
+const invitedFormatter = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' });
+function invitedLabel(person: MemberAccessPerson): string | null {
+  const times = person.memberships.map((m) => Date.parse(m.joinedAt)).filter(Number.isFinite);
+  return times.length ? `Diundang ${invitedFormatter.format(new Date(Math.min(...times)))}` : null;
 }
 
 export const MemberAccessMatrix: React.FC<MemberAccessMatrixProps> = ({
@@ -34,6 +44,9 @@ export const MemberAccessMatrix: React.FC<MemberAccessMatrixProps> = ({
   onFilterChange,
   onEditCell,
   currentUserId,
+  onResendInvite,
+  onCancelInvite,
+  busyUserId = null,
 }) => {
   const people = useMemo(() => filterPeople(overview, filter), [overview, filter]);
   const pendingCount = overview.people.filter((p) => p.activation === 'pending').length;
@@ -171,6 +184,41 @@ export const MemberAccessMatrix: React.FC<MemberAccessMatrixProps> = ({
                       >
                         {person.activation === 'active' ? 'Aktif' : 'Menunggu aktivasi'}
                       </span>
+                      {person.activation === 'pending' && (
+                        <div className="mt-1 space-y-1">
+                          {invitedLabel(person) && (
+                            <span className="block text-xs text-stone-500 dark:text-stone-400">
+                              {invitedLabel(person)}
+                            </span>
+                          )}
+                          {(onResendInvite || onCancelInvite) && (
+                            <div className="flex flex-wrap gap-1">
+                              {onResendInvite && (
+                                <button
+                                  type="button"
+                                  disabled={busyUserId !== null}
+                                  onClick={() => onResendInvite(person)}
+                                  aria-label={`Kirim ulang undangan ke ${person.email}`}
+                                  className="min-h-[32px] rounded-lg border border-stone-200 px-2 text-xs font-semibold text-stone-800 hover:bg-stone-50 disabled:opacity-50 dark:border-stone-700 dark:text-stone-100 dark:hover:bg-stone-800"
+                                >
+                                  Kirim ulang
+                                </button>
+                              )}
+                              {onCancelInvite && (
+                                <button
+                                  type="button"
+                                  disabled={busyUserId !== null}
+                                  onClick={() => onCancelInvite(person)}
+                                  aria-label={`Batalkan undangan ${person.email}`}
+                                  className="min-h-[32px] rounded-lg px-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
+                                >
+                                  Batalkan
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </td>
                     {overview.workspaces.map((workspace) => {
                       const membership = person.memberships.find(

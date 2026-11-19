@@ -41,3 +41,11 @@ export const MemberAccessOverviewSchema = z.object({
   people: z.array(MemberAccessPersonSchema),
 });
 export type MemberAccessOverview = z.infer<typeof MemberAccessOverviewSchema>;
+
+/** MEMBER-ACCESS-HUB P3: resend or cancel an invitation that has not been activated yet. */
+export const MemberInvitationResultSchema = z.object({
+  userId: z.string().uuid(),
+  /** Workspaces (managed by the actor) the action applied to. */
+  workspaceIds: z.array(z.string().uuid()),
+});
+export type MemberInvitationResult = z.infer<typeof MemberInvitationResultSchema>;
