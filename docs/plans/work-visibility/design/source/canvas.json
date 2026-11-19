@@ -1,20 +1,402 @@
 {
-  "v": 3,
-  "createdOnFiles": { "v": 1, "at": "2026-10-29T09:30:00Z" },
-  "title": "qlickHub — Laporan, Leader Hub & Akses",
-  "launch": { "view": "canvas" },
-  "pages": [],
-  "boards": {
-    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 1560, "title": "Laporan Saya", "expand": "fill", "is_interactive": true },
-    "LeaderHub.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 1480, "title": "Leader Hub — Ringkasan", "expand": "fill", "is_interactive": true },
-    "AnggotaAkses.dc.html": { "x": 0, "y": 1980, "w": 1440, "h": 1080, "title": "Anggota & Akses", "expand": "fill", "is_interactive": true },
-    "Undang.dc.html": { "x": 1520, "y": 1980, "w": 760, "h": 940, "title": "Undang anggota (modal)", "is_interactive": true },
-    "PengaturanWorkspace.dc.html": { "x": 2360, "y": 1980, "w": 1440, "h": 1200, "title": "Pengaturan Workspace — Kalender & Kapasitas", "expand": "fill", "is_interactive": true }
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-29T09:30:00Z"
+ },
+ "title": "qlickHub — Laporan, Leader Hub & Akses",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 1560,
+   "title": "Laporan Saya",
+   "expand": "fill",
+   "is_interactive": true
   },
-  "order": ["Main.dc.html", "LeaderHub.dc.html", "AnggotaAkses.dc.html", "Undang.dc.html", "PengaturanWorkspace.dc.html"],
-  "notes": {
-    "row1": { "x": 0, "y": -300, "text": "Laporan Saya & Leader Hub", "kind": "title1", "maxW": 2960 },
-    "row2": { "x": 0, "y": 1680, "text": "Anggota & Akses · Pengaturan Workspace", "kind": "title1", "maxW": 3800 }
+  "LeaderHub.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 1480,
+   "title": "Leader Hub — Ikhtisar",
+   "expand": "fill",
+   "is_interactive": true
   },
-  "designSystems": []
+  "AnggotaAkses.dc.html": {
+   "x": 0,
+   "y": 1980,
+   "w": 1440,
+   "h": 1080,
+   "title": "Tim & Akses",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Undang.dc.html": {
+   "x": 1520,
+   "y": 1980,
+   "w": 760,
+   "h": 940,
+   "title": "Undang anggota (modal)",
+   "is_interactive": true
+  },
+  "PengaturanWorkspace.dc.html": {
+   "x": 2360,
+   "y": 1980,
+   "w": 1440,
+   "h": 1200,
+   "title": "Pengaturan Workspace — Kalender & Kapasitas",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "BebanKerjaFlow.dc.html": {
+   "x": 0,
+   "y": 3600,
+   "w": 1352,
+   "h": 1792,
+   "title": "Diagram — Alur hitung beban kerja"
+  },
+  "FormSubtask.dc.html": {
+   "x": 0,
+   "y": 5960,
+   "w": 760,
+   "h": 1120,
+   "title": "Form subtask — effort & saran beban"
+  },
+  "DetailSubtask.dc.html": {
+   "x": 840,
+   "y": 5960,
+   "w": 1440,
+   "h": 1240,
+   "title": "Detail subtask — hambatan & tautan",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "DetailAnggota.dc.html": {
+   "x": 2360,
+   "y": 5960,
+   "w": 600,
+   "h": 1120,
+   "title": "Tim & Akses — panel orang: kapasitas, cuti, kata sandi",
+   "is_interactive": true
+  },
+  "ImporCSV.dc.html": {
+   "x": 3040,
+   "y": 5960,
+   "w": 920,
+   "h": 900,
+   "title": "Impor anggota dari CSV",
+   "is_interactive": true
+  },
+  "LeaderBeban.dc.html": {
+   "x": 0,
+   "y": 7620,
+   "w": 1440,
+   "h": 1200,
+   "title": "Leader Hub — Beban kerja",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "LeaderHambatan.dc.html": {
+   "x": 1520,
+   "y": 7620,
+   "w": 1440,
+   "h": 1100,
+   "title": "Leader Hub — Hambatan",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "LeaderKualitas.dc.html": {
+   "x": 3040,
+   "y": 7620,
+   "w": 1440,
+   "h": 1640,
+   "title": "Leader Hub — Alur & Kualitas",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "LeaderLaporan.dc.html": {
+   "x": 4560,
+   "y": 7620,
+   "w": 1440,
+   "h": 1240,
+   "title": "Leader Hub — Laporan tim",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "LeaderFeature.dc.html": {
+   "x": 6080,
+   "y": 7620,
+   "w": 1440,
+   "h": 1160,
+   "title": "Leader Hub — Detail Feature",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "States.dc.html": {
+   "x": 0,
+   "y": 9280,
+   "w": 1440,
+   "h": 860,
+   "title": "State layar"
+  },
+  "BugFlow.dc.html": {
+   "x": 0,
+   "y": 10740,
+   "w": 1360,
+   "h": 936,
+   "title": "Diagram — Alur bug & tiket user"
+  },
+  "BugHub.dc.html": {
+   "x": 1440,
+   "y": 10740,
+   "w": 1440,
+   "h": 1000,
+   "title": "Bug & Tiket — daftar bug",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Triase.dc.html": {
+   "x": 2960,
+   "y": 10740,
+   "w": 1440,
+   "h": 1040,
+   "title": "Bug & Tiket — triase QA",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "TiketList.dc.html": {
+   "x": 4480,
+   "y": 10740,
+   "w": 1440,
+   "h": 1000,
+   "title": "Bug & Tiket — tiket user + SLA",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "DetailTiket.dc.html": {
+   "x": 6000,
+   "y": 10740,
+   "w": 1440,
+   "h": 1100,
+   "title": "Detail tiket user",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "FormBug.dc.html": {
+   "x": 0,
+   "y": 12260,
+   "w": 760,
+   "h": 1080,
+   "title": "Form catat bug (Developer)",
+   "is_interactive": true
+  },
+  "FormTiket.dc.html": {
+   "x": 840,
+   "y": 12260,
+   "w": 760,
+   "h": 1180,
+   "title": "Form tiket baru (CS/QA)",
+   "is_interactive": true
+  },
+  "JadikanKerjaan.dc.html": {
+   "x": 1680,
+   "y": 12260,
+   "w": 760,
+   "h": 1000,
+   "title": "Jadikan bug & kerjaan perbaikan",
+   "is_interactive": true
+  },
+  "PengaturanSLA.dc.html": {
+   "x": 2520,
+   "y": 12260,
+   "w": 1440,
+   "h": 1200,
+   "title": "Pengaturan — SLA & Integrasi",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "LaporanBug.dc.html": {
+   "x": 4040,
+   "y": 12260,
+   "w": 1440,
+   "h": 1160,
+   "title": "Bug & SLA (dikeluarkan dari Leader Hub; angka masuk Alur & Kualitas nanti)",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "FeatureFlow.dc.html": {
+   "x": 0,
+   "y": 14060,
+   "w": 1440,
+   "h": 888,
+   "title": "Diagram — Membuat Feature: manual atau dibantu AI"
+  },
+  "FeatureBaru.dc.html": {
+   "x": 1520,
+   "y": 14060,
+   "w": 760,
+   "h": 940,
+   "title": "Feature baru — pilih cara",
+   "is_interactive": true
+  },
+  "FeaturePlan.dc.html": {
+   "x": 0,
+   "y": 15600,
+   "w": 1440,
+   "h": 1240,
+   "title": "Feature — 1 Plan (isi sendiri)",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "FeaturePlanAI.dc.html": {
+   "x": 1520,
+   "y": 15600,
+   "w": 1440,
+   "h": 1160,
+   "title": "Feature — 1 Plan (dibantu AI)",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "FeaturePRD.dc.html": {
+   "x": 3040,
+   "y": 15600,
+   "w": 1440,
+   "h": 1300,
+   "title": "Feature — 2 PRD (dibantu AI)",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "FeatureTask.dc.html": {
+   "x": 4560,
+   "y": 15600,
+   "w": 1440,
+   "h": 1100,
+   "title": "Feature — 3 Task",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "FeatureApply.dc.html": {
+   "x": 6080,
+   "y": 15600,
+   "w": 1440,
+   "h": 980,
+   "title": "Feature — 4 Apply",
+   "expand": "fill",
+   "is_interactive": true
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "LeaderHub.dc.html",
+  "AnggotaAkses.dc.html",
+  "Undang.dc.html",
+  "PengaturanWorkspace.dc.html",
+  "BebanKerjaFlow.dc.html",
+  "FormSubtask.dc.html",
+  "DetailSubtask.dc.html",
+  "DetailAnggota.dc.html",
+  "ImporCSV.dc.html",
+  "LeaderBeban.dc.html",
+  "LeaderHambatan.dc.html",
+  "LeaderKualitas.dc.html",
+  "LeaderLaporan.dc.html",
+  "LeaderFeature.dc.html",
+  "States.dc.html",
+  "BugFlow.dc.html",
+  "BugHub.dc.html",
+  "Triase.dc.html",
+  "TiketList.dc.html",
+  "DetailTiket.dc.html",
+  "FormBug.dc.html",
+  "FormTiket.dc.html",
+  "JadikanKerjaan.dc.html",
+  "PengaturanSLA.dc.html",
+  "LaporanBug.dc.html",
+  "FeatureFlow.dc.html",
+  "FeatureBaru.dc.html",
+  "FeaturePlan.dc.html",
+  "FeaturePlanAI.dc.html",
+  "FeaturePRD.dc.html",
+  "FeatureTask.dc.html",
+  "FeatureApply.dc.html"
+ ],
+ "notes": {
+  "row1": {
+   "x": 0,
+   "y": -300,
+   "text": "Laporan Saya & Leader Hub",
+   "kind": "title1",
+   "maxW": 2960
+  },
+  "row2": {
+   "x": 0,
+   "y": 1680,
+   "text": "Anggota & Akses · Pengaturan Workspace",
+   "kind": "title1",
+   "maxW": 3800
+  },
+  "row3": {
+   "x": 0,
+   "y": 3300,
+   "text": "Alur hitung beban kerja",
+   "kind": "title1",
+   "maxW": 1352
+  },
+  "row4": {
+   "x": 0,
+   "y": 5660,
+   "text": "Fondasi kerja — form, hambatan, kapasitas, impor",
+   "kind": "title1",
+   "maxW": 3960
+  },
+  "row5": {
+   "x": 0,
+   "y": 7320,
+   "text": "Leader Hub — tab lainnya & detail Feature",
+   "kind": "title1",
+   "maxW": 7520
+  },
+  "row6": {
+   "x": 0,
+   "y": 8980,
+   "text": "State layar",
+   "kind": "title1",
+   "maxW": 1440
+  },
+  "row7": {
+   "x": 0,
+   "y": 10440,
+   "text": "Bug & Tiket user — alur, daftar, triase, tiket, SLA",
+   "kind": "title1",
+   "maxW": 7440
+  },
+  "row8": {
+   "x": 0,
+   "y": 11960,
+   "text": "Bug & Tiket user — form, pengaturan SLA, laporan",
+   "kind": "title1",
+   "maxW": 5480
+  },
+  "row9": {
+   "x": 0,
+   "y": 13760,
+   "text": "Membuat Feature — gambaran besar",
+   "kind": "title1",
+   "maxW": 2280
+  },
+  "row10": {
+   "x": 0,
+   "y": 15300,
+   "text": "Membuat Feature — Plan, PRD, Task, Apply",
+   "kind": "title1",
+   "maxW": 7520
+  }
+ },
+ "designSystems": []
 }

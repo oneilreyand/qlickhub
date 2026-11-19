@@ -236,7 +236,7 @@ const LoggedInRoleHeroBanner: React.FC<LoggedInRoleHeroBannerProps> = ({
           summary:
             'Anda memegang kendali tata kelola workspace, keanggotaan tim, klasifikasi spesialisasi developer (ADR-002), dan akuntabilitas keputusan rilis tertinggi.',
           primaryActions: [
-            'Kelola anggota & spesialisasi (FE/BE/Mobile/Fullstack)',
+            'Kelola anggota, spesialisasi, kapasitas, dan cuti di Tim & Akses',
             'Atur kebijakan task creation permission',
             'Tinjau delivery progress & role bottlenecks',
           ],

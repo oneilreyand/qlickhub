@@ -14,7 +14,7 @@ export function visibleSettingsTabs({
   return [
     { id: 'umum', label: 'Umum' },
     { id: 'kalender', label: 'Kalender & Kapasitas' },
-    { id: 'anggota', label: 'Anggota' },
+    { id: 'anggota', label: 'Daftar anggota' },
     { id: 'alur', label: 'Alur & Kebijakan' },
     { id: 'qa', label: 'QA' },
     ...(canManageMembers ? [{ id: 'audit' as const, label: 'Log Audit' }] : []),

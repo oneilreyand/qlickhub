@@ -1,47 +1,36 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   fetchWorkspaces,
   updateWorkspace,
   fetchMembers,
-  addMember,
-  updateMemberRole,
-  removeMember,
   archiveWorkspace,
   restoreWorkspace,
   deleteWorkspace,
 } from '../store/workspaceSlice';
-import {
-  AssignableWorkspaceRole,
-  DeveloperSpecialty,
-  QaAssuranceRolloutSettings,
-  WorkspaceMemberAssignment,
-} from '@qlick/contracts';
+import type { QaAssuranceRolloutSettings } from '@qlick/contracts';
 import { enqueueSnackbar } from '../store/uiSlice';
 import { selectCurrentUserRole } from '../store/authSlice';
-import { authService } from '../lib/api/authService';
-import { workspaceService, WorkspaceMemberItem } from '../lib/api/workspaceService';
-import { Building2 } from 'lucide-react';
+import { workspaceService } from '../lib/api/workspaceService';
 import {
   EmptyWorkspaceOnboarding,
   WorkspaceGeneralSettingsForm,
   WorkspaceTaskPolicyCard,
   QaAssuranceRolloutCard,
   WorkspaceMembersTable,
-  InviteMemberModal,
-  AdminResetPasswordModal,
   WorkCalendarSettings,
   WorkspaceAuditLog,
 } from '../features/workspaces';
 import { resolveSettingsTab, visibleSettingsTabs } from '../features/workspaces/settingsTabs';
-import { MyCapacitySettings } from '../features/capacity/MyCapacitySettings';
-import { Tabs } from '../components/ui/molecules/Tabs';
+import { WorkspaceSettingsNav } from '../features/workspaces/WorkspaceSettingsNav';
 import { AccessRestricted } from '../components/ui/organisms/AccessRestricted';
 import { Button } from '../components/ui/atoms/Button';
 import { Input } from '../components/ui/atoms/Input';
 import { Modal } from '../components/ui/molecules/Modal';
 import { Alert } from '../components/ui/atoms/Alert';
+
+const noop = () => undefined;
 
 export const WorkspaceSettingsPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -64,22 +53,6 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const [isSavingQaAssuranceRollout, setIsSavingQaAssuranceRollout] = useState(false);
 
   const [searchMember, setSearchMember] = useState('');
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [accessWizardMode, setAccessWizardMode] = useState<'invite' | 'manage'>('invite');
-  const [accessWizardEmail, setAccessWizardEmail] = useState('');
-  const [accessWizardMemberships, setAccessWizardMemberships] = useState<WorkspaceMemberItem[]>([]);
-  const [isLoadingAccessMemberships, setIsLoadingAccessMemberships] = useState(false);
-  const [isInviting, setIsInviting] = useState(false);
-
-  // Admin Reset Member Password State
-  const [resetTargetUser, setResetTargetUser] = useState<{
-    id: string;
-    name: string;
-    email: string;
-  } | null>(null);
-  const [newMemberPassword, setNewMemberPassword] = useState('');
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
-
   // Workspace Archive / Restore Modal State
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -87,15 +60,6 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const [deleteWorkspaceName, setDeleteWorkspaceName] = useState('');
   const [isDeletingWorkspace, setIsDeletingWorkspace] = useState(false);
 
-  // Member Removal Modal State
-  const [memberPendingRemoval, setMemberPendingRemoval] = useState<{
-    userId: string;
-    email: string;
-  } | null>(null);
-  const [isRemovingMember, setIsRemovingMember] = useState(false);
-
-  // MEMBER-ACCESS-HUB P6: capacity & time-off of another member (Owner/Admin)
-  const [capacityTarget, setCapacityTarget] = useState<WorkspaceMemberItem | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const loadQaAssuranceRollout = useCallback(async (workspaceId: string) => {
@@ -281,152 +245,6 @@ export const WorkspaceSettingsPage: React.FC = () => {
     }
   };
 
-  const manageableWorkspaces = workspaces.filter((workspace) => {
-    const role = (workspace.role || workspace.myRole || '').toLowerCase();
-    return ['owner', 'admin'].includes(role) && !workspace.archivedAt;
-  });
-
-  const handleOpenInviteWizard = () => {
-    setAccessWizardMode('invite');
-    setAccessWizardEmail('');
-    setAccessWizardMemberships([]);
-    setShowInviteModal(true);
-  };
-
-  const handleOpenManageAccess = async (member: WorkspaceMemberItem) => {
-    setAccessWizardMode('manage');
-    setAccessWizardEmail(member.user?.email || '');
-    setAccessWizardMemberships([]);
-    setShowInviteModal(true);
-    setIsLoadingAccessMemberships(true);
-    try {
-      const membershipsByWorkspace = await Promise.all(
-        manageableWorkspaces.map((workspace) => workspaceService.getMembers(workspace.id)),
-      );
-      setAccessWizardMemberships(
-        membershipsByWorkspace.flat().filter((item) => item.userId === member.userId),
-      );
-    } catch (err) {
-      dispatch(
-        enqueueSnackbar(
-          err instanceof Error ? err.message : 'Akses Workspace pengguna gagal dimuat. Coba lagi.',
-          'error',
-        ),
-      );
-      setShowInviteModal(false);
-    } finally {
-      setIsLoadingAccessMemberships(false);
-    }
-  };
-
-  const handleAccessWizardSubmit = async (
-    email: string,
-    assignments: WorkspaceMemberAssignment[],
-  ) => {
-    if (!activeWorkspace) return;
-    setIsInviting(true);
-    try {
-      const result = await dispatch(
-        addMember({
-          workspaceId: activeWorkspace.id,
-          input: {
-            email,
-            assignments,
-          },
-        }),
-      ).unwrap();
-      const changedCount = result.assignmentResults.filter(
-        (assignment) => assignment.status !== 'already_member',
-      ).length;
-      dispatch(
-        enqueueSnackbar(
-          `${email} berhasil mendapatkan akses ke ${changedCount} Workspace.`,
-          'success',
-        ),
-      );
-      setAccessWizardEmail('');
-      setAccessWizardMemberships([]);
-      setShowInviteModal(false);
-    } catch (err) {
-      dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Anggota gagal ditambahkan.', 'error'),
-      );
-    } finally {
-      setIsInviting(false);
-    }
-  };
-
-  const handleAdminResetPassword = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!resetTargetUser || newMemberPassword.length < 6) {
-      dispatch(enqueueSnackbar('Kata sandi minimal terdiri dari 6 karakter.', 'error'));
-      return;
-    }
-    setIsResettingPassword(true);
-    try {
-      const res = await authService.adminResetMemberPassword({
-        workspaceId: activeWorkspace.id,
-        targetUserId: resetTargetUser.id,
-        newPassword: newMemberPassword,
-      });
-      dispatch(enqueueSnackbar(res.message, 'success'));
-      setResetTargetUser(null);
-      setNewMemberPassword('');
-    } catch (err: any) {
-      dispatch(enqueueSnackbar(err?.message || 'Kata sandi anggota gagal diatur ulang.', 'error'));
-    } finally {
-      setIsResettingPassword(false);
-    }
-  };
-
-  const handleMemberUpdate = async (
-    memberUserId: string,
-    newRole: AssignableWorkspaceRole,
-    specialties?: DeveloperSpecialty[],
-  ) => {
-    if (!activeWorkspace) return;
-    try {
-      await dispatch(
-        updateMemberRole({
-          workspaceId: activeWorkspace.id,
-          memberUserId,
-          input: { role: newRole, specialties: newRole === 'dev' ? specialties : [] },
-        }),
-      ).unwrap();
-      dispatch(enqueueSnackbar('Peran dan spesialisasi anggota berhasil diperbarui.', 'success'));
-    } catch (err) {
-      dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Anggota gagal diperbarui.', 'error'),
-      );
-    }
-  };
-
-  const handleRemoveMember = (memberUserId: string, memberEmail: string) => {
-    setMemberPendingRemoval({ userId: memberUserId, email: memberEmail });
-  };
-
-  const handleConfirmRemoveMember = async () => {
-    if (!activeWorkspace || !memberPendingRemoval) return;
-    const { userId, email } = memberPendingRemoval;
-    setIsRemovingMember(true);
-    try {
-      await dispatch(
-        removeMember({
-          workspaceId: activeWorkspace.id,
-          memberUserId: userId,
-        }),
-      ).unwrap();
-      dispatch(enqueueSnackbar(`${email} telah dihapus dari workspace.`, 'info'));
-      setMemberPendingRemoval(null);
-    } catch (err) {
-      dispatch(
-        enqueueSnackbar(err instanceof Error ? err.message : 'Anggota gagal dihapus.', 'error'),
-      );
-    } finally {
-      setIsRemovingMember(false);
-    }
-  };
-
   // While workspaces are being loaded or not yet initialized, render accessible loading state
   if (!isInitialized || (isLoading && workspaces.length === 0)) {
     return (
@@ -459,174 +277,149 @@ export const WorkspaceSettingsPage: React.FC = () => {
 
   return (
     <div className="w-full space-y-8 pb-12 animate-fadeIn">
-      {/* Page Header */}
-      <div className="border-b border-stone-200 pb-5 dark:border-stone-800">
-        <div className="flex items-center gap-2 text-xs font-semibold text-stone-700 dark:text-[#B1E743]">
-          <Building2 className="h-4 w-4" />
-          <span>Pengelolaan Workspace</span>
-        </div>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl dark:text-stone-100">
-          {activeWorkspace ? activeWorkspace.name : 'Pengaturan Workspace'}
+      <header className="space-y-1">
+        <p className="text-sm text-stone-500 dark:text-stone-400">Pengaturan Workspace</p>
+        <h1 className="text-2xl font-extrabold tracking-tight text-stone-900 sm:text-3xl dark:text-stone-100">
+          {activeWorkspace.name}
         </h1>
-        <p className="mt-1 text-xs text-stone-500 sm:text-sm dark:text-stone-400">
-          Kelola preferensi workspace, peran, dan undangan anggota tim.
-        </p>
         {isArchived && (
-          <p className="mt-3 text-sm font-semibold text-amber-700 dark:text-amber-300">
+          <p className="pt-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
             Workspace ini telah diarsipkan dan hanya dapat dilihat.
           </p>
         )}
-      </div>
+      </header>
 
-      <Tabs
-        tabs={settingsTabs}
-        activeTabId={activeTab}
-        onChange={handleTabChange}
-        ariaLabel="Bagian pengaturan workspace"
-      />
-
-      <div role="tabpanel" aria-label={settingsTabs.find((tab) => tab.id === activeTab)?.label}>
-        {activeTab === 'umum' && (
-          <div className="max-w-2xl">
-            <WorkspaceGeneralSettingsForm
-              workspaceName={workspaceName}
-              workspaceDesc={workspaceDesc}
-              onNameChange={setWorkspaceName}
-              onDescChange={setWorkspaceDesc}
-              onSubmit={handleSaveDetails}
-              isSaving={isSavingDetails}
-              canManage={canManageMembers && !isArchived}
-            />
-          </div>
-        )}
-
-        {activeTab === 'kalender' && (
-          <div className="max-w-2xl">
-            <WorkCalendarSettings
-              key={activeWorkspace.id}
-              workspaceId={activeWorkspace.id}
-              canManage={canManageMembers && !isArchived}
-            />
-          </div>
-        )}
-
-        {activeTab === 'anggota' && (
-          <WorkspaceMembersTable
-            members={members}
-            isLoading={isMembersLoading}
-            canManageMembers={canManageMembers && !isArchived}
-            managerRole={canManageMembers && !isArchived ? (userRole as 'owner' | 'admin') : null}
-            searchQuery={searchMember}
-            onSearchChange={setSearchMember}
-            onInviteClick={handleOpenInviteWizard}
-            onManageAccess={(member) => void handleOpenManageAccess(member)}
-            onRoleChange={(memberUserId, role) => {
-              const member = members.find((item) => item.userId === memberUserId);
-              void handleMemberUpdate(
-                memberUserId,
-                role,
-                role === 'dev' ? member?.specialties || [] : [],
-              );
-            }}
-            onSpecialtiesChange={(memberUserId, specialties) => {
-              void handleMemberUpdate(memberUserId, 'dev', specialties);
-            }}
-            onRemoveMember={handleRemoveMember}
-            onResetPasswordClick={(user) => {
-              setResetTargetUser(user);
-              setNewMemberPassword('');
-            }}
-            onCapacityClick={setCapacityTarget}
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <nav aria-label="Bagian pengaturan" className="lg:sticky lg:top-6 lg:w-56 lg:shrink-0">
+          <WorkspaceSettingsNav
+            tabs={settingsTabs}
+            activeTabId={activeTab}
+            onChange={handleTabChange}
+            ariaLabel="Bagian pengaturan workspace"
+            dangerTabId="bahaya"
           />
-        )}
+        </nav>
 
-        {activeTab === 'alur' && (
-          <div className="max-w-2xl">
-            <WorkspaceTaskPolicyCard
-              allowQaTaskCreation={allowQaTaskCreation}
-              canManage={canManageMembers && !isArchived}
-              isUpdating={isUpdatingPolicy}
-              onToggle={(checked) => void handleToggleQaPolicy(checked)}
-            />
+        <div className="min-w-0 flex-1">
+          <div
+            role="tabpanel"
+            aria-labelledby={`settings-tab-${activeTab}`}
+            aria-label={settingsTabs.find((tab) => tab.id === activeTab)?.label}
+          >
+            {activeTab === 'umum' && (
+              <div className="max-w-2xl">
+                <WorkspaceGeneralSettingsForm
+                  workspaceName={workspaceName}
+                  workspaceDesc={workspaceDesc}
+                  onNameChange={setWorkspaceName}
+                  onDescChange={setWorkspaceDesc}
+                  onSubmit={handleSaveDetails}
+                  isSaving={isSavingDetails}
+                  canManage={canManageMembers && !isArchived}
+                />
+              </div>
+            )}
+
+            {activeTab === 'kalender' && (
+              <div className="max-w-4xl">
+                <WorkCalendarSettings
+                  key={activeWorkspace.id}
+                  workspaceId={activeWorkspace.id}
+                  canManage={canManageMembers && !isArchived}
+                />
+              </div>
+            )}
+
+            {activeTab === 'anggota' && (
+              <div className="space-y-4">
+                <Alert tone="info" title="Daftar ini hanya untuk dilihat">
+                  {canManageMembers ? (
+                    <>
+                      Undang, ubah peran, atur kapasitas & cuti, atau reset kata sandi di{' '}
+                      <Link to="/members" className="font-semibold underline">
+                        Tim & Akses
+                      </Link>
+                      .
+                    </>
+                  ) : (
+                    'Perubahan anggota dilakukan oleh Owner atau Admin workspace.'
+                  )}
+                </Alert>
+                <WorkspaceMembersTable
+                  members={members}
+                  isLoading={isMembersLoading}
+                  canManageMembers={false}
+                  managerRole={null}
+                  searchQuery={searchMember}
+                  onSearchChange={setSearchMember}
+                  onInviteClick={noop}
+                  onRoleChange={noop}
+                  onRemoveMember={noop}
+                  onResetPasswordClick={noop}
+                />
+              </div>
+            )}
+
+            {activeTab === 'alur' && (
+              <div className="max-w-2xl">
+                <WorkspaceTaskPolicyCard
+                  allowQaTaskCreation={allowQaTaskCreation}
+                  canManage={canManageMembers && !isArchived}
+                  isUpdating={isUpdatingPolicy}
+                  onToggle={(checked) => void handleToggleQaPolicy(checked)}
+                />
+              </div>
+            )}
+
+            {activeTab === 'qa' && (
+              <div className="max-w-2xl">
+                <QaAssuranceRolloutCard
+                  settings={qaAssuranceRollout}
+                  isLoading={isQaAssuranceRolloutLoading}
+                  error={qaAssuranceRolloutError}
+                  canManage={canManageMembers && !isArchived}
+                  isSaving={isSavingQaAssuranceRollout}
+                  onRetry={() => void loadQaAssuranceRollout(activeWorkspace.id)}
+                  onSave={(input) => void handleSaveQaAssuranceRollout(input)}
+                />
+              </div>
+            )}
+
+            {activeTab === 'audit' && (
+              <div className="max-w-3xl">
+                <WorkspaceAuditLog key={activeWorkspace.id} workspaceId={activeWorkspace.id} />
+              </div>
+            )}
+
+            {activeTab === 'bahaya' && (
+              <section className="max-w-2xl space-y-3 rounded-2xl border border-red-200 bg-red-50/40 p-5 dark:border-red-900/60 dark:bg-red-950/20">
+                <h2 className="text-sm font-bold text-red-800 dark:text-red-300">Zona bahaya</h2>
+                <p className="text-xs text-stone-600 dark:text-stone-400">
+                  {isArchived
+                    ? 'Workspace diarsipkan. Pulihkan agar tim bisa bekerja lagi, atau hapus permanen beserta seluruh datanya.'
+                    : 'Mengarsipkan membuat workspace hanya bisa dilihat. Hapus permanen hanya tersedia setelah workspace diarsipkan.'}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={isArchived ? 'secondary' : 'destructive'}
+                    onClick={() => setIsArchiveModalOpen(true)}
+                  >
+                    {isArchived ? 'Pulihkan Workspace' : 'Arsipkan Workspace'}
+                  </Button>
+                  {canDeleteWorkspace && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => setIsDeleteWorkspaceModalOpen(true)}
+                    >
+                      Hapus Permanen
+                    </Button>
+                  )}
+                </div>
+              </section>
+            )}
           </div>
-        )}
-
-        {activeTab === 'qa' && (
-          <div className="max-w-2xl">
-            <QaAssuranceRolloutCard
-              settings={qaAssuranceRollout}
-              isLoading={isQaAssuranceRolloutLoading}
-              error={qaAssuranceRolloutError}
-              canManage={canManageMembers && !isArchived}
-              isSaving={isSavingQaAssuranceRollout}
-              onRetry={() => void loadQaAssuranceRollout(activeWorkspace.id)}
-              onSave={(input) => void handleSaveQaAssuranceRollout(input)}
-            />
-          </div>
-        )}
-
-        {activeTab === 'audit' && (
-          <div className="max-w-3xl">
-            <WorkspaceAuditLog key={activeWorkspace.id} workspaceId={activeWorkspace.id} />
-          </div>
-        )}
-
-        {activeTab === 'bahaya' && (
-          <section className="max-w-2xl space-y-3 rounded-2xl border border-red-200 bg-red-50/40 p-5 dark:border-red-900/60 dark:bg-red-950/20">
-            <h2 className="text-sm font-bold text-red-800 dark:text-red-300">Zona bahaya</h2>
-            <p className="text-xs text-stone-600 dark:text-stone-400">
-              {isArchived
-                ? 'Workspace diarsipkan. Pulihkan agar tim bisa bekerja lagi, atau hapus permanen beserta seluruh datanya.'
-                : 'Mengarsipkan membuat workspace hanya bisa dilihat. Hapus permanen hanya tersedia setelah workspace diarsipkan.'}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={isArchived ? 'secondary' : 'destructive'}
-                onClick={() => setIsArchiveModalOpen(true)}
-              >
-                {isArchived ? 'Pulihkan Workspace' : 'Arsipkan Workspace'}
-              </Button>
-              {canDeleteWorkspace && (
-                <Button variant="destructive" onClick={() => setIsDeleteWorkspaceModalOpen(true)}>
-                  Hapus Permanen
-                </Button>
-              )}
-            </div>
-          </section>
-        )}
+        </div>
       </div>
-
-      <Modal
-        isOpen={capacityTarget !== null}
-        onClose={() => setCapacityTarget(null)}
-        title={`Kapasitas & cuti ${capacityTarget?.user?.name || capacityTarget?.user?.email || ''}`.trim()}
-      >
-        {capacityTarget && <MyCapacitySettings userId={capacityTarget.userId} />}
-      </Modal>
-
-      {/* Invite Member Modal */}
-      <InviteMemberModal
-        isOpen={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
-        mode={accessWizardMode}
-        initialEmail={accessWizardEmail}
-        currentWorkspaceId={activeWorkspace.id}
-        workspaces={manageableWorkspaces}
-        existingMemberships={accessWizardMemberships}
-        isExistingMembershipsLoading={isLoadingAccessMemberships}
-        isSubmitting={isInviting}
-        onSubmit={(email, assignments) => void handleAccessWizardSubmit(email, assignments)}
-      />
-
-      {/* Admin Reset Member Password Modal */}
-      <AdminResetPasswordModal
-        targetUser={resetTargetUser}
-        onClose={() => setResetTargetUser(null)}
-        newPassword={newMemberPassword}
-        isResetting={isResettingPassword}
-        onPasswordChange={setNewMemberPassword}
-        onSubmit={handleAdminResetPassword}
-      />
 
       {/* Modal: Archive / Restore Workspace Confirmation */}
       <Modal
@@ -726,49 +519,6 @@ export const WorkspaceSettingsPage: React.FC = () => {
               disabled={deleteWorkspaceName.trim() !== activeWorkspace.name}
             >
               Hapus Permanen
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Modal: Remove Member Confirmation */}
-      <Modal
-        isOpen={Boolean(memberPendingRemoval)}
-        onClose={() => {
-          if (!isRemovingMember) setMemberPendingRemoval(null);
-        }}
-        title="Hapus Anggota dari Workspace?"
-        description={`Hapus ${memberPendingRemoval?.email || 'anggota ini'} dari ${activeWorkspace.name}.`}
-        size="sm"
-      >
-        <div className="space-y-4">
-          <Alert tone="warning" title="Pencabutan Akses Anggota">
-            Anggota ini akan langsung kehilangan akses ke workspace. Riwayat aktivitas Task dan
-            kontribusi delivery mereka tetap tersimpan.
-          </Alert>
-          <p className="text-xs text-stone-600 dark:text-stone-300">
-            Yakin ingin menghapus{' '}
-            <span className="font-semibold text-stone-900 dark:text-stone-100">
-              {memberPendingRemoval?.email}
-            </span>
-            ?
-          </p>
-          <div className="flex flex-col-reverse gap-2 border-t border-stone-100 pt-3 dark:border-stone-800 sm:flex-row sm:justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setMemberPendingRemoval(null)}
-              disabled={isRemovingMember}
-            >
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => void handleConfirmRemoveMember()}
-              isLoading={isRemovingMember}
-            >
-              Hapus Anggota
             </Button>
           </div>
         </div>

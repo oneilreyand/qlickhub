@@ -67,7 +67,7 @@ export const LeaderDigestTab: React.FC<LeaderDigestTabProps> = ({ workspaceIds }
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h2 className="text-base font-bold text-stone-900 dark:text-white">
-              Digest Laporan Eksekutif Lintas Workspace
+              Laporan tim lintas workspace
             </h2>
             <Badge variant="brand" size="sm">
               {period === 'weekly' ? 'Mingguan' : 'Bulanan'}

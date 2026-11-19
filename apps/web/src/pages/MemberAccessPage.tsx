@@ -21,6 +21,7 @@ import {
 import { MemberAccessCellModal } from '../components/ui/organisms/MemberAccessCellModal';
 import { RoleTemplatesModal } from '../components/ui/organisms/RoleTemplatesModal';
 import { MemberImportDialog } from '../features/memberAccess/MemberImportDialog';
+import { MemberPersonPanel } from '../features/memberAccess/MemberPersonPanel';
 import { useRoleTemplates } from '../features/memberAccess/useRoleTemplates';
 import { memberAccessService } from '../lib/api/memberAccessService';
 import { workspaceService } from '../lib/api/workspaceService';
@@ -35,8 +36,10 @@ type PageState =
   | { status: 'ready'; data: MemberAccessOverview };
 
 /**
- * MEMBER-ACCESS-HUB P2: "Anggota & Akses" — who can enter which Workspace, across every
- * Workspace the caller manages as Owner/Admin. Changes use the per-Workspace endpoints.
+ * MEMBER-ACCESS-HUB P2: "Tim & Akses" (renamed by UX-NAV-CLARITY) — the one place to manage
+ * people: who can enter which Workspace across every Workspace the caller manages as Owner/Admin,
+ * plus a per-person panel for capacity, time off and password. Changes use the per-Workspace
+ * endpoints.
  */
 export const MemberAccessPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -52,6 +55,7 @@ export const MemberAccessPage: React.FC = () => {
   const [cancelTarget, setCancelTarget] = useState<MemberAccessPerson | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [personId, setPersonId] = useState<string | null>(null);
   const roleTemplates = useRoleTemplates();
   const { load: loadTemplates } = roleTemplates;
 
@@ -191,11 +195,11 @@ export const MemberAccessPage: React.FC = () => {
       <header className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-black tracking-tight text-stone-900 sm:text-3xl dark:text-white">
-            Anggota & Akses
+            Tim & Akses
           </h1>
           <p className="text-sm text-stone-500 dark:text-stone-400">
             {data
-              ? `Atur siapa bisa masuk ke workspace mana. Kamu mengelola ${data.workspaces.length} workspace sebagai Owner/Admin.`
+              ? `Atur siapa bisa masuk ke workspace mana. Klik nama untuk kapasitas, cuti, dan kata sandi. Kamu mengelola ${data.workspaces.length} workspace sebagai Owner/Admin.`
               : 'Atur siapa bisa masuk ke workspace mana.'}
           </p>
         </div>
@@ -244,7 +248,7 @@ export const MemberAccessPage: React.FC = () => {
 
       {state.status === 'denied' && (
         <AccessRestricted
-          title="Anggota & Akses khusus Owner dan Admin"
+          title="Tim & Akses khusus Owner dan Admin"
           description="Kamu belum menjadi Owner atau Admin di workspace mana pun."
         />
       )}
@@ -275,6 +279,16 @@ export const MemberAccessPage: React.FC = () => {
           onResendInvite={(person) => void invitationAction(person, 'resend')}
           onCancelInvite={setCancelTarget}
           busyUserId={busyUserId}
+          onOpenPerson={(person) => setPersonId(person.userId)}
+        />
+      )}
+
+      {data && (
+        <MemberPersonPanel
+          person={data.people.find((p) => p.userId === personId) ?? null}
+          overview={data}
+          currentUserId={currentUserId}
+          onClose={() => setPersonId(null)}
         />
       )}
 

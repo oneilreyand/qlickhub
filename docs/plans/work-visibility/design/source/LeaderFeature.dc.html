@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Leader Hub — Detail Feature</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:#FBFCF7;color:#22201F}
+a{color:#3F6212}a:hover{color:#1A2E05}
+.nav a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:12px;color:#57534E;text-decoration:none;font-size:14px;font-weight:500}
+.nav a:hover{background:#F5F5F4;color:#141413}
+.nav a.on{background:#B1E743;color:#141413;font-weight:700}
+.card{background:#FFFFFF;border:1px solid #E7E5E4;border-radius:16px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.c-ok{background:#ECFDF5;color:#047857}
+.c-late-done{background:#FFF7ED;color:#C2410C}
+.c-late{background:#FEF2F2;color:#B91C1C}
+.c-risk{background:#FFFBEB;color:#B45309}
+.c-track{background:#F1F5F9;color:#334155}
+.c-none{background:#FFFFFF;color:#57534E;border:1px dashed #A8A29E}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;font:600 14px Inter,system-ui,sans-serif;cursor:pointer;text-decoration:none;box-sizing:border-box}
+.btn-ghost{background:#FFFFFF;border:1px solid #E7E5E4;color:#22201F}
+.btn-primary{background:#B1E743;border:1px solid #B1E743;color:#141413}
+.btn-sm{min-height:40px;padding:0 12px}
+.tab{min-height:44px;padding:0 16px;border-radius:12px;border:0;background:transparent;font:600 14px Inter,system-ui,sans-serif;color:#57534E;cursor:pointer}
+.tab.on{background:#141413;color:#FFFFFF}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:600;color:#64748B;padding:12px 16px;border-bottom:1px solid #E7E5E4;white-space:nowrap}
+.tbl td{padding:12px 16px;border-bottom:1px solid #F0EFEC;vertical-align:middle}
+.lbl{font-size:13px;font-weight:600;color:#22201F}
+.help{font-size:12px;color:#64748B}
+.in{min-height:44px;box-sizing:border-box;width:100%;padding:0 12px;border:1px solid #D6D3D1;border-radius:12px;font:400 14px Inter,system-ui,sans-serif;background:#FFFFFF;color:#22201F}
+.seg{min-width:56px;min-height:44px;border-radius:12px;border:1px solid #D6D3D1;background:#FFFFFF;font:700 14px Inter,system-ui,sans-serif;color:#44403C;cursor:pointer}
+.seg.on{background:#141413;border-color:#141413;color:#FFFFFF}
+.h2{margin:0;font-size:16px;font-weight:700;color:#141413}
+.av{width:36px;height:36px;border-radius:999px;background:#0B1C30;color:#FFFFFF;display:grid;place-items:center;font-size:13px;font-weight:700;flex:0 0 36px}
+.sk{background:#EEEDEA;border-radius:8px}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100vh; background: #FBFCF7">
+<nav class="nav" aria-label="Navigasi utama" style="flex: 1 1 240px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #E7E5E4; padding: 20px 12px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px"><div style="width: 28px; height: 28px; border-radius: 8px; background: #B1E743; color: #141413; display: grid; place-items: center; font-weight: 800; font-size: 14px">Q</div><span style="font-size: 15px; font-weight: 800; color: #141413">qlickHub</span></div>
+<a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Beranda</a>
+<a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>Task Hub</a>
+<a href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Tugas Saya</a>
+<a href="Main.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>Laporan Saya</a>
+<div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #64748B; padding: 18px 12px 6px">Lainnya</div>
+<a href="LeaderHub.dc.html" class="on" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18h18M4 8l4 4 4-7 4 7 4-4-2 10H6z"></path></svg>Leader Hub</a>
+<a href="BugHub.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7.1V6a3 3 0 1 1 6 0v1.1"></path><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6z"></path><path d="M12 20v-9M6 13H2M22 13h-4M6 9L3 7M18 9l3-2M6 17l-3 2M18 17l3 2"></path></svg>Bug &amp; Tiket</a>
+<a href="AnggotaAkses.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"></path></svg>Tim &amp; Akses</a>
+<a href="PengaturanWorkspace.dc.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>Pengaturan Workspace</a>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 56px; display: flex; flex-direction: column; gap: 24px">
+<nav aria-label="Breadcrumb" style="font-size: 13px; color: #64748B"><a href="LeaderHub.dc.html">Leader Hub</a> › Refund otomatis</nav>
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: flex-end">
+<div><h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: #141413">Refund otomatis</h1><p style="margin: 6px 0 0; font-size: 14px; color: #64748B; display: flex; gap: 8px; align-items: center; flex-wrap: wrap">Payment · PO Sari Utami · target rilis 7 Nov <span class="chip c-late">Terhambat</span></p></div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap"><a href="#" class="btn btn-ghost">Buka di Task Hub</a></div></header>
+<section class="card" aria-label="Tahap SDLC" style="padding: 20px 24px; overflow-x: auto"><ol style="list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; min-width: 860px"><li style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 84px"><span style="display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: #0B1C30; color: #FFFFFF; font-weight: 800; border: 2px solid #0B1C30">✓</span><span style="font-size: 13px; font-weight: 600; color: #22201F">Plan</span><span class="help" style="text-align: center">7 Okt</span></li><li style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 84px"><span style="display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: #0B1C30; color: #FFFFFF; font-weight: 800; border: 2px solid #0B1C30">✓</span><span style="font-size: 13px; font-weight: 600; color: #22201F">PRD</span><span class="help" style="text-align: center">10 Okt</span></li><li style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 84px"><span style="display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: #0B1C30; color: #FFFFFF; font-weight: 800; border: 2px solid #0B1C30">✓</span><span style="font-size: 13px; font-weight: 600; color: #22201F">Task</span><span class="help" style="text-align: center">14 Okt</span></li><li style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 84px"><span style="display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: #B91C1C; color: #FFFFFF; font-weight: 800; border: 2px solid #B91C1C">!</span><span style="font-size: 13px; font-weight: 600; color: #B91C1C">Dev</span><span class="help" style="text-align: center">18 Okt · 12 hari</span></li><li style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 84px"><span style="display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: #FFFFFF; color: #A8A29E; font-weight: 800; border: 2px solid #D6D3D1"></span><span style="font-size: 13px; font-weight: 600; color: #22201F">Review</span><span class="help" style="text-align: center"></span></li><li style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 84px"><span style="display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: #FFFFFF; color: #A8A29E; font-weight: 800; border: 2px solid #D6D3D1"></span><span style="font-size: 13px; font-weight: 600; color: #22201F">QA</span><span class="help" style="text-align: center"></span></li><li style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 84px"><span style="display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: #FFFFFF; color: #A8A29E; font-weight: 800; border: 2px solid #D6D3D1"></span><span style="font-size: 13px; font-weight: 600; color: #22201F">Rilis</span><span class="help" style="text-align: center"></span></li><li style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 84px"><span style="display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: #FFFFFF; color: #A8A29E; font-weight: 800; border: 2px solid #D6D3D1"></span><span style="font-size: 13px; font-weight: 600; color: #22201F">Verif. Prod</span><span class="help" style="text-align: center"></span></li><li style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1 1 0; min-width: 84px"><span style="display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px; background: #FFFFFF; color: #A8A29E; font-weight: 800; border: 2px solid #D6D3D1"></span><span style="font-size: 13px; font-weight: 600; color: #22201F">Monitor</span><span class="help" style="text-align: center"></span></li></ol></section>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section class="card" aria-labelledby="kz-h" style="flex: 2 1 380px; min-width: 0; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px">
+<h2 id="kz-h" class="h2">Kenapa terhambat</h2>
+<div style="display: flex; gap: 10px; align-items: flex-start"><span class="chip c-late">1</span><span style="font-size: 14px; color: #22201F">Hambatan terbuka 4 hari: <strong>menunggu akses sandbox bank</strong> · PIC Dimas</span></div>
+<div style="display: flex; gap: 10px; align-items: flex-start"><span class="chip c-late">2</span><span style="font-size: 14px; color: #22201F">Sudah 12 hari di tahap Dev (ambang 5 hari kerja)</span></div>
+<div style="display: flex; gap: 10px; align-items: flex-start"><span class="chip c-risk">3</span><span style="font-size: 14px; color: #22201F">Assignee utama Rina di 118% kapasitas minggu ini</span></div>
+<div style="display: flex; gap: 10px; align-items: flex-start"><span class="chip c-risk">4</span><span style="font-size: 14px; color: #22201F">1 subtask QA belum dijadwalkan</span></div>
+<div style="border-top: 1px solid #F0EFEC; padding-top: 12px; display: flex; flex-direction: column; gap: 8px"><span class="lbl">Tindakan (kamu yang memutuskan)</span>
+<div style="display: flex; gap: 8px; flex-wrap: wrap"><button type="button" class="btn btn-ghost btn-sm">Ping Dimas</button><button type="button" class="btn btn-ghost btn-sm">Ubah jadwal</button><button type="button" class="btn btn-ghost btn-sm">Ganti assignee</button></div>
+<span class="help">Tidak ada perubahan otomatis. Setiap tindakan tercatat di aktivitas Feature.</span></div>
+</section>
+<section class="card" aria-labelledby="sb-h" style="flex: 3 1 560px; min-width: 0; display: flex; flex-direction: column">
+<div style="padding: 18px 20px 8px"><h2 id="sb-h" class="h2">Subtask (4)</h2></div>
+<div style="overflow-x: auto"><table class="tbl" style="min-width: 720px"><thead><tr><th>Subtask</th><th>Area · assignee</th><th>Effort</th><th>Jadwal</th><th>Status</th><th>Ketepatan</th></tr></thead><tbody><tr><td><a href="DetailSubtask.dc.html" style="font-weight: 600; color: #141413; text-decoration: none">API refund</a></td><td>Backend · Rina</td><td>M</td><td style="white-space: nowrap">30 Okt – 4 Nov</td><td>In progress</td><td><span class="chip c-risk">Berisiko</span></td></tr><tr><td><a href="DetailSubtask.dc.html" style="font-weight: 600; color: #141413; text-decoration: none">Webhook status refund</a></td><td>Backend · Dimas</td><td>S</td><td style="white-space: nowrap">20 – 24 Okt</td><td>Done</td><td><span class="chip c-ok">Tepat waktu</span></td></tr><tr><td><a href="DetailSubtask.dc.html" style="font-weight: 600; color: #141413; text-decoration: none">Uji refund end-to-end</a></td><td>QA · Bayu</td><td>M</td><td style="white-space: nowrap">Belum dijadwalkan</td><td>To do</td><td><span class="chip c-none">Tanpa jadwal</span></td></tr><tr><td><a href="DetailSubtask.dc.html" style="font-weight: 600; color: #141413; text-decoration: none">Layar refund (Mobile App)</a></td><td>Mobile · Arif</td><td>S</td><td style="white-space: nowrap">3 – 5 Nov</td><td>To do</td><td><span class="chip c-late">Diblokir</span></td></tr></tbody></table></div></section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1160}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

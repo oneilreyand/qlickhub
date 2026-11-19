@@ -28,6 +28,16 @@ const ws = vi.hoisted(() => ({
 }));
 vi.mock('../../lib/api/memberAccessService', () => ({ memberAccessService: access }));
 vi.mock('../../lib/api/workspaceService', () => ({ workspaceService: ws }));
+const auth = vi.hoisted(() => ({ adminResetMemberPassword: vi.fn() }));
+vi.mock('../../lib/api/authService', () => ({ authService: auth }));
+const capacity = vi.hoisted(() => ({
+  getForUser: vi.fn(),
+  updateForUser: vi.fn(),
+  addTimeOffForUser: vi.fn(),
+  removeTimeOffForUser: vi.fn(),
+  getMine: vi.fn(),
+}));
+vi.mock('../../lib/api/personalCapacityService', () => ({ personalCapacityService: capacity }));
 
 const ME = '10000000-0000-4000-8000-000000000000';
 const RINA = '20000000-0000-4000-8000-000000000000';
@@ -148,7 +158,7 @@ describe('MemberAccessPage (MEMBER-ACCESS-HUB P2)', () => {
       screen.getByRole('button', { name: 'Tambahkan Rina Wijaya ke Mobile App' }),
     ).toBeInTheDocument();
     // Owner role, own access and archived Workspaces are read-only.
-    expect(screen.queryByRole('button', { name: /Saya Owner/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /(Ubah akses|Tambahkan) Saya Owner/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /di Lama|ke Lama/ })).toBeNull();
     expect(screen.getAllByText('Menunggu aktivasi').length).toBeGreaterThan(0);
   });
@@ -218,7 +228,7 @@ describe('MemberAccessPage (MEMBER-ACCESS-HUB P2)', () => {
       Object.assign(new Error('Forbidden'), { status: 403 }),
     );
     const { unmount } = renderPage();
-    expect(await screen.findByText('Anggota & Akses khusus Owner dan Admin')).toBeInTheDocument();
+    expect(await screen.findByText('Tim & Akses khusus Owner dan Admin')).toBeInTheDocument();
     unmount();
     access.getOverview
       .mockRejectedValueOnce(Object.assign(new Error('Server sibuk'), { status: 500 }))
@@ -441,5 +451,52 @@ describe('MemberAccessPage (MEMBER-ACCESS-HUB P2)', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('Akses sudah berakhir')).toBeInTheDocument();
     expect(within(dialog).getByLabelText('Peran')).toBeDisabled();
+  });
+
+  it('opens the person panel with capacity and a password reset through a managed workspace (UX-NAV-CLARITY)', async () => {
+    capacity.getForUser.mockResolvedValue({
+      userId: RINA,
+      weeklyPoints: 12,
+      effectiveWeeklyPoints: 12,
+      source: 'override',
+      timeOff: [],
+      canEdit: true,
+    });
+    auth.adminResetMemberPassword.mockResolvedValue({ message: 'Kata sandi diatur ulang.' });
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Detail Rina Wijaya' }));
+
+    const panel = await screen.findByRole('dialog', { name: 'Rina Wijaya' });
+    expect(within(panel).getByText('Developer · Backend')).toBeInTheDocument();
+    expect(await within(panel).findByLabelText('Poin per minggu')).toHaveValue(12);
+    expect(capacity.getForUser).toHaveBeenCalledWith(RINA);
+
+    fireEvent.click(within(panel).getByRole('button', { name: 'Atur ulang kata sandi' }));
+    const modal = await screen.findByRole('dialog', { name: 'Atur Ulang Kata Sandi Anggota' });
+    fireEvent.change(within(modal).getByPlaceholderText('Minimal 6 karakter'), {
+      target: { value: 'Replacement-password-123!' },
+    });
+    fireEvent.click(within(modal).getByRole('button', { name: 'Atur Ulang Kata Sandi' }));
+    await waitFor(() =>
+      expect(auth.adminResetMemberPassword).toHaveBeenCalledWith({
+        workspaceId: PAY,
+        targetUserId: RINA,
+        newPassword: 'Replacement-password-123!',
+      }),
+    );
+  });
+
+  it('does not offer a password reset for yourself or a person who has not activated yet', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Detail Saya Owner' }));
+    let panel = await screen.findByRole('dialog', { name: 'Saya Owner' });
+    expect(within(panel).queryByRole('button', { name: 'Atur ulang kata sandi' })).toBeNull();
+    fireEvent.click(within(panel).getByRole('button', { name: /Tutup/ }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Detail Nadia Anggraini' }));
+    panel = await screen.findByRole('dialog', { name: 'Nadia Anggraini' });
+    expect(within(panel).getByText(/Kirim ulang undangan/)).toBeInTheDocument();
+    expect(within(panel).queryByRole('button', { name: 'Atur ulang kata sandi' })).toBeNull();
+    expect(capacity.getForUser).not.toHaveBeenCalledWith(NADIA);
   });
 });

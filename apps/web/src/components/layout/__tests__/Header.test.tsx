@@ -192,7 +192,7 @@ describe('Header', () => {
 
 describe('getSectionLabel', () => {
   it('maps routes to the Sidebar destination names', () => {
-    expect(getSectionLabel('/work', 'overview')).toBe('Ringkasan');
+    expect(getSectionLabel('/work', 'overview')).toBe('Beranda');
     expect(getSectionLabel('/work', 'tasks')).toBe('Task Hub');
     expect(getSectionLabel('/my-tasks', 'overview')).toBe('Tugas Saya');
     expect(getSectionLabel('/projects/p1/tasks/t1', 'overview')).toBe('Task Hub');

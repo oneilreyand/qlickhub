@@ -4,6 +4,7 @@ import type {
   UpdateWorkCalendarInput,
   WorkCalendar,
 } from '@qlick/contracts';
+import { Link } from 'react-router-dom';
 import { WorkCalendarCard } from '../../components/ui/organisms/WorkCalendarCard';
 import { workspaceService } from '../../lib/api/workspaceService';
 import { useAppDispatch } from '../../store/hooks';
@@ -107,6 +108,13 @@ export const WorkCalendarSettings: React.FC<{ workspaceId: string; canManage: bo
       onSave={(input) => void handleSave(input)}
       onAddHoliday={handleAddHoliday}
       onRemoveHoliday={(id) => void handleRemoveHoliday(id)}
+      peopleLink={
+        canManage ? (
+          <Link to="/members" className="font-semibold underline underline-offset-2">
+            Tim & Akses
+          </Link>
+        ) : undefined
+      }
     />
   );
 };

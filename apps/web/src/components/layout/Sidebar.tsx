@@ -41,7 +41,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    name: 'Ringkasan',
+    name: 'Beranda',
     path: '/work?tab=overview',
     icon: LayoutDashboard,
   },
@@ -73,7 +73,7 @@ const navItems: NavItem[] = [
     badge: 'Panduan',
   },
   {
-    name: 'Anggota & Akses',
+    name: 'Tim & Akses',
     path: '/members',
     icon: UsersRound,
   },

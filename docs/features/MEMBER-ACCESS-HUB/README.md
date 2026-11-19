@@ -5,7 +5,7 @@
 **Last reviewed:** 2026-11-17
 **Applicable Policy IDs:** AUTH-001, AUTH-002, AUTH-014, DATA-001, DATA-002, CONTRACT-001, UI-001, UI-002, TEST-001, SDLC-001
 
-Halaman Anggota & Akses lintas Workspace untuk Owner/Admin, status undangan, template role, undangan CSV, akses berbatas waktu, dan penataan ulang Pengaturan Workspace menjadi tab.
+Halaman Tim & Akses (dulu Anggota & Akses) lintas Workspace untuk Owner/Admin, status undangan, template role, undangan CSV, akses berbatas waktu, dan penataan ulang Pengaturan Workspace menjadi tab.
 
 ## Stage Tracker
 
@@ -61,7 +61,7 @@ Lihat [authorization.md](authorization.md).
 
 ## 7. UI dan Interaction States
 
-Layar baru: Anggota & Akses (`03-anggota-akses.webp`) dan modal Undang (`04-undang-anggota.webp`); Pengaturan Workspace menjadi tab. Desain: [work-visibility/design](../../plans/work-visibility/design/README.md). User flow dan state per layar di [product.md](product.md) §3–§4.
+Sejak UX-NAV-CLARITY (2026-11-19) halaman ini bernama Tim & Akses dan menjadi satu-satunya tempat mengelola orang: klik nama membuka panel kapasitas, cuti, dan reset kata sandi; tab Anggota di Pengaturan Workspace menjadi "Daftar anggota" yang hanya dibaca. Layar baru: Anggota & Akses (`03-anggota-akses.webp`) dan modal Undang (`04-undang-anggota.webp`); Pengaturan Workspace menjadi tab. Desain: [work-visibility/design](../../plans/work-visibility/design/README.md). User flow dan state per layar di [product.md](product.md) §3–§4.
 
 ## 8. Pengujian dan Evidence
 
