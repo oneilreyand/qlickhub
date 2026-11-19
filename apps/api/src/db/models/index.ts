@@ -66,4 +66,5 @@ export * from './taskBlocker.js';
 export * from './userCapacity.js';
 export * from './userTimeOff.js';
 export * from './taskRelation.js';
+export * from './memberRoleTemplate.js';
 import './associations.js';

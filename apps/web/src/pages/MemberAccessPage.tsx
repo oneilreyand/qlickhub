@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw, UserRoundPlus } from 'lucide-react';
+import { BookmarkCheck, FileUp, RefreshCw, UserRoundPlus } from 'lucide-react';
 import type {
   AssignableWorkspaceRole,
   DeveloperSpecialty,
@@ -19,6 +19,9 @@ import {
   type MemberCellTarget,
 } from '../components/ui/organisms/MemberAccessMatrix';
 import { MemberAccessCellModal } from '../components/ui/organisms/MemberAccessCellModal';
+import { RoleTemplatesModal } from '../components/ui/organisms/RoleTemplatesModal';
+import { MemberImportDialog } from '../features/memberAccess/MemberImportDialog';
+import { useRoleTemplates } from '../features/memberAccess/useRoleTemplates';
 import { memberAccessService } from '../lib/api/memberAccessService';
 import { workspaceService } from '../lib/api/workspaceService';
 import { selectCurrentUserId } from '../store/authSlice';
@@ -47,6 +50,10 @@ export const MemberAccessPage: React.FC = () => {
   const [isInviting, setIsInviting] = useState(false);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<MemberAccessPerson | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const roleTemplates = useRoleTemplates();
+  const { load: loadTemplates } = roleTemplates;
 
   const load = useCallback(async () => {
     setState({ status: 'loading' });
@@ -182,13 +189,37 @@ export const MemberAccessPage: React.FC = () => {
           </p>
         </div>
         {data && manageable.length > 0 && (
-          <Button
-            leftIcon={<UserRoundPlus className="h-4 w-4" />}
-            onClick={() => setShowInvite(true)}
-            className="min-h-[44px]"
-          >
-            Undang anggota
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              leftIcon={<BookmarkCheck className="h-4 w-4" />}
+              onClick={() => {
+                setShowTemplates(true);
+                void loadTemplates();
+              }}
+              className="min-h-[44px]"
+            >
+              Template peran
+            </Button>
+            <Button
+              variant="outline"
+              leftIcon={<FileUp className="h-4 w-4" />}
+              onClick={() => setShowImport(true)}
+              className="min-h-[44px]"
+            >
+              Impor CSV
+            </Button>
+            <Button
+              leftIcon={<UserRoundPlus className="h-4 w-4" />}
+              onClick={() => {
+                setShowInvite(true);
+                void loadTemplates();
+              }}
+              className="min-h-[44px]"
+            >
+              Undang anggota
+            </Button>
+          </div>
         )}
       </header>
 
@@ -289,8 +320,26 @@ export const MemberAccessPage: React.FC = () => {
           workspaces={manageable}
           isSubmitting={isInviting}
           onSubmit={(email, assignments) => void invite(email, assignments)}
+          lockCurrentWorkspace={false}
+          templates={roleTemplates.templates ?? []}
+          onSaveTemplate={roleTemplates.save}
         />
       )}
+
+      <RoleTemplatesModal
+        isOpen={showTemplates}
+        onClose={() => setShowTemplates(false)}
+        templates={roleTemplates.templates}
+        error={roleTemplates.error}
+        deletingId={roleTemplates.deletingId}
+        onDelete={(template) => void roleTemplates.remove(template)}
+      />
+
+      <MemberImportDialog
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        onImported={() => void load()}
+      />
     </div>
   );
 };

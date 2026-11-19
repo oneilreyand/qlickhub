@@ -1,6 +1,6 @@
 # MEMBER-ACCESS-HUB — Tahap 4: Build Phase 06 — Tab Pengaturan Workspace
 
-**Status:** Kandidat teruji
+**Status:** Di main (#148)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-6.1
 **Applicable Policy IDs:** AI-009, AI-013, AUTH-001, AUTH-014, AUTH-015

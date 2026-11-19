@@ -14,7 +14,7 @@
 
 Contract baru `packages/contracts/src/memberAccess.ts`. Endpoint: `GET /v1/me/member-access` (P1, hanya baca),
 `POST /v1/me/member-access/:userId/resend-invite`, `POST /v1/me/member-access/:userId/cancel-invite` (P3; per orang, lintas Workspace yang dikelola aktor — bukan per Workspace seperti rencana awal),
-`GET/POST/DELETE /v1/me/role-templates`, `POST /v1/me/member-access/import` (pratinjau dan commit).
+`GET /v1/me/role-templates`, `POST /v1/me/role-templates`, `DELETE /v1/me/role-templates/:templateId` (P4; milik aktor, privat), `POST /v1/me/member-access/import` (P4; `mode: preview|commit`, maks. 200 baris; baris mentah dari CSV yang di-parse di browser, validasi di server; commit memproses semua baris valid dalam satu transaksi dan mencatat `member_added`/`member_restored` dengan metadata `source: csv_import`).
 Perubahan role/spesialisasi/`expiresAt` memakai endpoint keanggotaan per Workspace yang ada.
 
 ## Boundary notes
