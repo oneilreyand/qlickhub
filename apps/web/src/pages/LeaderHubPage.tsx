@@ -218,7 +218,7 @@ export const LeaderHubPage: React.FC = () => {
           }`}
         >
           <ShieldAlert className="h-4 w-4" />
-          <span>Kualitas & Bug (Staging vs Prod)</span>
+          <span>Alur & Kualitas</span>
         </button>
 
         <button

@@ -42,6 +42,18 @@ stream; klien memuat ulang `GET /v1/leader/pipeline`. Kanal leader terpisah dari
 sehingga anggota non-leader tidak menerimanya. Di klien: debounce 2 detik; bila stream putus atau tidak
 tersedia, ringkasan dimuat ulang tiap 2 menit selama tab terlihat.
 
+### Metrik alur dan timeframe kualitas (P6)
+
+`GET /v1/leader/flow?workspaceIds=<uuid,uuid>&timeframe=week|month|quarter|all` (default `month` = 30 hari;
+hanya Workspace yang dipimpin) → `LeaderFlowMetricsSchema`: `completed` (throughput Subtask yang selesai di
+periode), `throughputByWeek`, `leadTime` (dibuat → selesai) dan `cycleTime` (perpindahan pertama ke
+`in_progress` → selesai) berupa median + p85 dalam hari, `stages` (median hari per status dari histori
+`task_activity.metadata_json.changes.status`), `onTime` (tanggal selesai di zona waktu Workspace ≤ `due_date`).
+Subtask tanpa histori status dihitung di throughput dan lead time saja (`cycleTime.withoutStartEvent`), tidak
+diperkirakan (`DATA-005`). `GET /v1/leader/quality` kini memakai `timeframe` (bug yang dilaporkan di periode;
+default 30 hari; respons menambah `timeframe`) dan menerima `workspaceIds` berupa daftar dipisah koma; digest
+mingguan/bulanan memakai 7/30 hari.
+
 ### Pemetaan tahap (P1)
 
 | Tahap                   | Aktif bila                                                                                          | Umur dihitung dari                                      |

@@ -9,12 +9,16 @@ import {
   type LeaderReportDigestResponse,
   type LeaderTimelineQuery,
   type LeaderPipelineSummary,
+  type LeaderFlowMetrics,
+  type LeaderMetricsTimeframe,
   type TaskBlockerPingResult,
 } from '@qlick/contracts';
 import { apiClient } from './apiClient';
 
 export interface LeaderQualityQuery {
   workspaceIds?: string[];
+  /** P6: window for the bugs counted; the backend defaults to 30 days. */
+  timeframe?: LeaderMetricsTimeframe;
   startDate?: string;
   endDate?: string;
   assigneeId?: string;
@@ -33,6 +37,17 @@ export const leaderService = {
     const params: Record<string, string> = {};
     if (workspaceIds?.length) params.workspaceIds = workspaceIds.join(',');
     const res = await apiClient<{ data: LeaderPipelineSummary }>('/leader/pipeline', { params });
+    return res.data;
+  },
+
+  /** P6: lead/cycle time, stage time, throughput and on-time rate. */
+  async getFlow(
+    workspaceIds: string[] | undefined,
+    timeframe: LeaderMetricsTimeframe,
+  ): Promise<LeaderFlowMetrics> {
+    const params: Record<string, string> = { timeframe };
+    if (workspaceIds?.length) params.workspaceIds = workspaceIds.join(',');
+    const res = await apiClient<{ data: LeaderFlowMetrics }>('/leader/flow', { params });
     return res.data;
   },
 
@@ -84,6 +99,7 @@ export const leaderService = {
     if (query.startDate) params.startDate = query.startDate;
     if (query.endDate) params.endDate = query.endDate;
     if (query.assigneeId) params.assigneeId = query.assigneeId;
+    if (query.timeframe) params.timeframe = query.timeframe;
 
     const response = await apiClient<unknown>('/leader/quality', {
       method: 'GET',

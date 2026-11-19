@@ -79,11 +79,35 @@ export const LeaderTimelineResponseSchema = z.object({
 });
 export type LeaderTimelineResponse = z.infer<typeof LeaderTimelineResponseSchema>;
 
+/** LEADER-PIPELINE-HUB P6: rolling window for quality and flow metrics. */
+export const LeaderMetricsTimeframeSchema = z.enum(['week', 'month', 'quarter', 'all']);
+export type LeaderMetricsTimeframe = z.infer<typeof LeaderMetricsTimeframeSchema>;
+/** Days covered by each window; `all` has no lower bound. */
+export const LEADER_TIMEFRAME_DAYS: Record<LeaderMetricsTimeframe, number | null> = {
+  week: 7,
+  month: 30,
+  quarter: 90,
+  all: null,
+};
+
+/** One id, several ids, or a comma-separated list (what the web client sends). */
+const WorkspaceIdListSchema = z.preprocess(
+  (value) =>
+    typeof value === 'string'
+      ? value
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean)
+      : value,
+  z.array(z.string().uuid()).optional(),
+);
+
 export const LeaderQualityQuerySchema = z.object({
-  workspaceIds: z.union([z.string().uuid(), z.array(z.string().uuid())]).optional(),
-  timeframe: z.enum(['week', 'month', 'quarter', 'all']).optional(),
+  workspaceIds: WorkspaceIdListSchema,
+  /** P6: bugs reported inside the window; default 30 days. */
+  timeframe: LeaderMetricsTimeframeSchema.default('month'),
 });
-export type LeaderQualityQuery = z.infer<typeof LeaderQualityQuerySchema>;
+export type LeaderQualityQuery = z.input<typeof LeaderQualityQuerySchema>;
 
 export const LeaderDeveloperQualityItemSchema = z.object({
   developerId: z.string().uuid(),
@@ -110,6 +134,10 @@ export const LeaderQualityMetricsResponseSchema = z.object({
     firstTimeRightRate: z.number().min(0).max(100),
   }),
   developerMetrics: z.array(LeaderDeveloperQualityItemSchema),
+  /** P6: window the numbers cover (`from` null = since the beginning). */
+  timeframe: z
+    .object({ key: LeaderMetricsTimeframeSchema, from: z.string().nullable(), to: z.string() })
+    .optional(),
 });
 export type LeaderQualityMetricsResponse = z.infer<typeof LeaderQualityMetricsResponseSchema>;
 

@@ -6,5 +6,6 @@ export { SdlcPipelineTable, SdlcStageDot } from './SdlcPipelineTable';
 export { OpenBlockersPanel } from './OpenBlockersPanel';
 export * from './labels';
 export { TeamLoadPanel } from './TeamLoadPanel';
+export { FlowMetricsPanel } from './FlowMetricsPanel';
 export { LeaderHubSummaryView } from './LeaderHubSummaryView';
 export type { LeaderHubSummaryState, LeaderHubSummaryViewProps } from './LeaderHubSummaryView';

@@ -105,11 +105,14 @@ describe('Status history audit (WORK-FOUNDATION P1, PostgreSQL)', () => {
   });
 
   test('counts missing history per Workspace without changing any row', async () => {
+    // Counted only in this file's Workspaces: other test files run in parallel and write elsewhere.
     const countRows = async () => {
       const [[row]] = (await sequelize.query(
-        `SELECT (SELECT COUNT(*) FROM tasks)::int AS tasks,
-                (SELECT COUNT(*) FROM task_activity)::int AS activity,
-                (SELECT COUNT(*) FROM tasks WHERE completed_at IS NULL)::int AS open_completed`,
+        `SELECT (SELECT COUNT(*) FROM tasks WHERE workspace_id IN (:ids))::int AS tasks,
+                (SELECT COUNT(*) FROM task_activity WHERE workspace_id IN (:ids))::int AS activity,
+                (SELECT COUNT(*) FROM tasks
+                  WHERE workspace_id IN (:ids) AND completed_at IS NULL)::int AS open_completed`,
+        { replacements: { ids: [workspace.id, otherWorkspace.id] } },
       )) as [Array<{ tasks: number; activity: number; open_completed: number }>, unknown];
       return row;
     };
