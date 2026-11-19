@@ -132,6 +132,17 @@ export const MemberAccessPage: React.FC = () => {
     );
   };
 
+  const saveExpiry = (expiresOn: string | null) => {
+    if (!target || !targetWorkspace) return;
+    void run(
+      () =>
+        workspaceService.updateMemberExpiry(target.workspaceId, target.person.userId, expiresOn),
+      expiresOn
+        ? `Akses ${target.person.name} di ${targetWorkspace.name} berlaku sampai ${expiresOn}.`
+        : `Batas akses ${target.person.name} di ${targetWorkspace.name} dihapus.`,
+    );
+  };
+
   const invitationAction = async (person: MemberAccessPerson, kind: 'resend' | 'cancel') => {
     setBusyUserId(person.userId);
     try {
@@ -283,6 +294,17 @@ export const MemberAccessPage: React.FC = () => {
         onClose={() => setTarget(null)}
         onSave={save}
         onRemove={remove}
+        expiry={
+          targetMembership
+            ? { expiresAt: targetMembership.expiresAt, expired: targetMembership.expired }
+            : undefined
+        }
+        canSetExpiry={
+          !targetWorkspace?.archived &&
+          targetMembership?.role !== 'owner' &&
+          (targetWorkspace?.actorRole === 'owner' || targetMembership?.role !== 'admin')
+        }
+        onSaveExpiry={saveExpiry}
       />
 
       <Modal

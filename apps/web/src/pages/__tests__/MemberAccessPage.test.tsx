@@ -24,6 +24,7 @@ const ws = vi.hoisted(() => ({
   updateMemberRole: vi.fn(),
   addMember: vi.fn(),
   removeMember: vi.fn(),
+  updateMemberExpiry: vi.fn(),
 }));
 vi.mock('../../lib/api/memberAccessService', () => ({ memberAccessService: access }));
 vi.mock('../../lib/api/workspaceService', () => ({ workspaceService: ws }));
@@ -49,7 +50,14 @@ const overview: MemberAccessOverview = {
       avatarUrl: null,
       activation: 'active',
       memberships: [
-        { workspaceId: PAY, role: 'owner', specialties: [], joinedAt: '2026-01-01T00:00:00.000Z' },
+        {
+          workspaceId: PAY,
+          role: 'owner',
+          specialties: [],
+          joinedAt: '2026-01-01T00:00:00.000Z',
+          expiresAt: null,
+          expired: false,
+        },
       ],
     },
     {
@@ -64,6 +72,8 @@ const overview: MemberAccessOverview = {
           role: 'dev',
           specialties: ['backend'],
           joinedAt: '2026-01-01T00:00:00.000Z',
+          expiresAt: '2026-12-01T17:00:00.000Z',
+          expired: false,
         },
       ],
     },
@@ -74,7 +84,14 @@ const overview: MemberAccessOverview = {
       avatarUrl: null,
       activation: 'pending',
       memberships: [
-        { workspaceId: MOB, role: 'qa', specialties: [], joinedAt: '2026-01-01T00:00:00.000Z' },
+        {
+          workspaceId: MOB,
+          role: 'qa',
+          specialties: [],
+          joinedAt: '2026-01-01T00:00:00.000Z',
+          expiresAt: null,
+          expired: false,
+        },
       ],
     },
   ],
@@ -378,5 +395,51 @@ describe('MemberAccessPage (MEMBER-ACCESS-HUB P2)', () => {
       expect(access.importMembers).toHaveBeenCalledWith({ mode: 'commit', rows }),
     );
     await waitFor(() => expect(access.getOverview).toHaveBeenCalledTimes(2));
+  });
+
+  it('shows, extends and removes the end of access in a cell (P5)', async () => {
+    ws.updateMemberExpiry.mockResolvedValue({});
+    renderPage();
+    const cell = await screen.findByRole('button', {
+      name: /Ubah akses Rina Wijaya di Payment: .*s\/d 1 Des 2026/,
+    });
+    fireEvent.click(cell);
+    const dialog = await screen.findByRole('dialog');
+    const input = within(dialog).getByLabelText('Hari terakhir akses');
+    expect(input).toHaveValue('2026-12-01');
+    fireEvent.change(input, { target: { value: '2026-12-15' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Perpanjang / ubah batas' }));
+    await waitFor(() =>
+      expect(ws.updateMemberExpiry).toHaveBeenCalledWith(PAY, RINA, '2026-12-15'),
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Ubah akses Rina Wijaya di Payment/ }),
+    );
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Hapus batas' }),
+    );
+    await waitFor(() => expect(ws.updateMemberExpiry).toHaveBeenCalledWith(PAY, RINA, null));
+  });
+
+  it('marks expired access and blocks role edits until it is extended (P5)', async () => {
+    access.getOverview.mockResolvedValue({
+      ...overview,
+      people: overview.people.map((person) =>
+        person.userId === RINA
+          ? {
+              ...person,
+              memberships: person.memberships.map((m) => ({ ...m, expired: true })),
+            }
+          : person,
+      ),
+    });
+    renderPage();
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Rina Wijaya di Payment: .*Akses berakhir/ }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Akses sudah berakhir')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Peran')).toBeDisabled();
   });
 });

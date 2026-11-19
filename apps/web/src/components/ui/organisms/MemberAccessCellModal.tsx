@@ -3,7 +3,14 @@ import type { AssignableWorkspaceRole, DeveloperSpecialty } from '@qlick/contrac
 import { Modal } from '../molecules/Modal';
 import { Button } from '../atoms/Button';
 import { Select } from '../atoms/Select';
-import { MEMBER_ROLE_LABEL, SPECIALTY_LABEL } from './memberAccessLabels';
+import { Input } from '../atoms/Input';
+import { Alert } from '../atoms/Alert';
+import {
+  MEMBER_ROLE_LABEL,
+  SPECIALTY_LABEL,
+  expiryInputValue,
+  expiryLastDay,
+} from './memberAccessLabels';
 
 /** MEMBER-ACCESS-HUB P2: edit (or add) one person's access in one Workspace. */
 
@@ -20,6 +27,12 @@ export interface MemberAccessCellModalProps {
   onClose: () => void;
   onSave: (role: AssignableWorkspaceRole, specialties: DeveloperSpecialty[]) => void;
   onRemove: () => void;
+  /** MEMBER-ACCESS-HUB P5: current end of access; omitted for non-members. */
+  expiry?: { expiresAt: string | null; expired: boolean };
+  /** P5: false when the actor may not limit this person (Admin → Admin). */
+  canSetExpiry?: boolean;
+  /** P5: last day of access as YYYY-MM-DD, or null to remove the limit. */
+  onSaveExpiry?: (expiresOn: string | null) => void;
 }
 
 export const MemberAccessCellModal: React.FC<MemberAccessCellModalProps> = ({
@@ -31,18 +44,27 @@ export const MemberAccessCellModal: React.FC<MemberAccessCellModalProps> = ({
   onClose,
   onSave,
   onRemove,
+  expiry,
+  canSetExpiry = false,
+  onSaveExpiry,
 }) => {
   const [role, setRole] = useState<AssignableWorkspaceRole | ''>('');
   const [specialties, setSpecialties] = useState<DeveloperSpecialty[]>([]);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [expiresOn, setExpiresOn] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setRole(current?.role ?? '');
       setSpecialties(current?.specialties ?? []);
       setConfirmRemove(false);
+      setExpiresOn(expiryInputValue(expiry?.expiresAt ?? null));
     }
-  }, [isOpen, current]);
+  }, [isOpen, current, expiry?.expiresAt]);
+
+  const expired = Boolean(expiry?.expired);
+  const showExpiry = Boolean(current && expiry && onSaveExpiry && canSetExpiry);
+  const expiryUnchanged = expiresOn === expiryInputValue(expiry?.expiresAt ?? null);
 
   const needsSpecialty = role === 'dev' && specialties.length === 0;
   const unchanged =
@@ -65,7 +87,14 @@ export const MemberAccessCellModal: React.FC<MemberAccessCellModalProps> = ({
       size="sm"
     >
       <div className="space-y-4">
+        {expired && expiry?.expiresAt && (
+          <Alert tone="warning" title="Akses sudah berakhir">
+            Akses ke {workspaceName} berakhir setelah {expiryLastDay(expiry.expiresAt)}. Pilih
+            tanggal baru atau hapus batas untuk memulihkannya.
+          </Alert>
+        )}
         <Select
+          disabled={expired}
           label="Peran"
           value={role}
           onChange={(event) => {
@@ -115,6 +144,44 @@ export const MemberAccessCellModal: React.FC<MemberAccessCellModalProps> = ({
           </fieldset>
         )}
 
+        {showExpiry && (
+          <fieldset className="space-y-2 rounded-xl border border-stone-200 p-3 dark:border-stone-800">
+            <legend className="px-1 text-xs font-semibold text-stone-700 dark:text-stone-300">
+              Batas akses
+            </legend>
+            <Input
+              type="date"
+              label="Hari terakhir akses"
+              value={expiresOn}
+              onChange={(event) => setExpiresOn(event.target.value)}
+            />
+            <p className="text-[11px] text-stone-500 dark:text-stone-400">
+              Setelah tanggal ini orang tersebut tidak bisa masuk ke workspace, dihitung dengan zona
+              waktu workspace. Kosongkan untuk akses tanpa batas.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isSaving || !expiresOn || expiryUnchanged}
+                onClick={() => onSaveExpiry?.(expiresOn)}
+              >
+                {expiry?.expiresAt ? 'Perpanjang / ubah batas' : 'Simpan batas'}
+              </Button>
+              {expiry?.expiresAt && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={isSaving}
+                  onClick={() => onSaveExpiry?.(null)}
+                >
+                  Hapus batas
+                </Button>
+              )}
+            </div>
+          </fieldset>
+        )}
+
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-4 dark:border-stone-800">
           {current ? (
             confirmRemove ? (
@@ -139,7 +206,7 @@ export const MemberAccessCellModal: React.FC<MemberAccessCellModalProps> = ({
           )}
           <Button
             size="sm"
-            disabled={!canSave}
+            disabled={!canSave || expired}
             isLoading={isSaving && !confirmRemove}
             onClick={() => role && onSave(role, specialties)}
           >

@@ -32,7 +32,8 @@ export async function getMemberAccessOverview(actorId: string): Promise<MemberAc
       attributes: ['id', 'name', 'archivedAt'],
       order: [['name', 'ASC']],
     }),
-    WorkspaceMemberModel.findAll({
+    // Unscoped: expired memberships stay visible here so they can be extended (P5).
+    WorkspaceMemberModel.unscoped().findAll({
       where: { workspaceId: { [Op.in]: managedIds } },
       include: [
         {
@@ -51,6 +52,7 @@ export async function getMemberAccessOverview(actorId: string): Promise<MemberAc
     }),
   ]);
 
+  const now = Date.now();
   const people = new Map<string, MemberAccessPerson>();
   const counts = new Map<string, number>();
   for (const membership of memberships) {
@@ -72,6 +74,8 @@ export async function getMemberAccessOverview(actorId: string): Promise<MemberAc
       role: membership.role,
       specialties: specialtyValues(membership),
       joinedAt: new Date(membership.joinedAt).toISOString(),
+      expiresAt: membership.expiresAt ? new Date(membership.expiresAt).toISOString() : null,
+      expired: Boolean(membership.expiresAt && new Date(membership.expiresAt).getTime() <= now),
     });
     people.set(user.id, person);
   }

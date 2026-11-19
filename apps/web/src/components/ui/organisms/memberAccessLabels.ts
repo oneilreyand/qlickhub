@@ -22,6 +22,23 @@ export const SPECIALTY_LABEL: Record<DeveloperSpecialty, string> = {
   fullstack: 'Fullstack',
 };
 
+/** P5: last day of access (the instant `expiresAt` minus 1 ms) as a short Indonesian date. */
+export function expiryLastDay(expiresAt: string): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(Date.parse(expiresAt) - 1));
+}
+
+/** P5: `YYYY-MM-DD` of the last day of access, in the browser's time zone, for date inputs. */
+export function expiryInputValue(expiresAt: string | null): string {
+  if (!expiresAt) return '';
+  const last = new Date(Date.parse(expiresAt) - 1);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`;
+}
+
 export type MemberAccessTab = 'all' | 'pending';
 
 export interface MemberAccessFilter {

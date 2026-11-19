@@ -76,7 +76,11 @@ export const WorkspaceAuditLogCard: React.FC<WorkspaceAuditLogCardProps> = ({
               className="flex flex-col gap-0.5 py-2.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
             >
               <p className="text-sm text-stone-800 dark:text-stone-200">
-                <strong className="font-semibold">{item.actorName || 'Sistem'}</strong>{' '}
+                <strong className="font-semibold">
+                  {(item.metadataJson as { system?: boolean } | null)?.system
+                    ? 'Sistem'
+                    : item.actorName || 'Sistem'}
+                </strong>{' '}
                 {auditActionLabel(item)}{' '}
                 <strong className="font-semibold">{item.entityTitle || 'anggota'}</strong>
               </p>

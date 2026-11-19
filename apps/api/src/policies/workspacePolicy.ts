@@ -71,12 +71,20 @@ export const requireWorkspaceMember = (allowedRoles?: WorkspaceRole[]) => {
       });
 
       if (!membership) {
+        // MEMBER-ACCESS-HUB P5: the default scope already hides expired memberships; look again
+        // only to explain why access ended.
+        const expired = await WorkspaceMemberModel.unscoped().findOne({
+          where: { workspaceId, userId },
+          attributes: ['id', 'expiresAt'],
+        });
         return res.status(403).json({
           type: 'https://api.qa-hub.com/errors/forbidden',
           title: 'Forbidden',
           status: 403,
-          detail: 'You are not a member of this workspace.',
-          code: 'FORBIDDEN',
+          detail: expired?.expiresAt
+            ? 'Akses Anda ke Workspace ini sudah berakhir. Hubungi Owner atau Admin Workspace.'
+            : 'You are not a member of this workspace.',
+          code: expired?.expiresAt ? 'MEMBERSHIP_EXPIRED' : 'FORBIDDEN',
         });
       }
 

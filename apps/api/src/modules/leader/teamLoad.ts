@@ -75,7 +75,7 @@ export async function getLeaderTeamLoad(
        FROM workspace_members m
        JOIN users u ON u.id = m.user_id
        LEFT JOIN workspace_member_specialties s ON s.workspace_member_id = m.id
-      WHERE m.workspace_id IN (:workspaceIds) AND m.deleted_at IS NULL`,
+      WHERE m.workspace_id IN (:workspaceIds) AND m.deleted_at IS NULL AND (m.expires_at IS NULL OR m.expires_at > now())`,
     { type: QueryTypes.SELECT, replacements: { workspaceIds } },
   );
   const byUser = new Map<string, MemberRow[]>();
@@ -97,7 +97,7 @@ export async function getLeaderTeamLoad(
       `SELECT m.user_id, w.id AS workspace_id, w.timezone, w.working_days
          FROM workspace_members m
          JOIN workspaces w ON w.id = m.workspace_id AND w.archived_at IS NULL
-        WHERE m.user_id IN (:userIds) AND m.deleted_at IS NULL`,
+        WHERE m.user_id IN (:userIds) AND m.deleted_at IS NULL AND (m.expires_at IS NULL OR m.expires_at > now())`,
       { type: QueryTypes.SELECT, replacements: { userIds } },
     ),
     sequelize.query<{
@@ -115,7 +115,7 @@ export async function getLeaderTeamLoad(
          JOIN tasks p ON p.id = t.parent_task_id AND p.deleted_at IS NULL
          JOIN workspaces w ON w.id = t.workspace_id AND w.archived_at IS NULL
          JOIN workspace_members m
-           ON m.workspace_id = t.workspace_id AND m.user_id = t.assignee_id AND m.deleted_at IS NULL
+           ON m.workspace_id = t.workspace_id AND m.user_id = t.assignee_id AND m.deleted_at IS NULL AND (m.expires_at IS NULL OR m.expires_at > now())
         WHERE t.deleted_at IS NULL
           AND t.status <> 'canceled'
           AND t.assignee_id IN (:userIds)

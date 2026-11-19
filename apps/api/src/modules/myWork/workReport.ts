@@ -76,7 +76,7 @@ export async function getMyWorkReport(
     `SELECT w.id, w.name, w.timezone, w.working_days, m.role
        FROM workspace_members m
        JOIN workspaces w ON w.id = m.workspace_id AND w.archived_at IS NULL
-      WHERE m.user_id = :actorId AND m.deleted_at IS NULL
+      WHERE m.user_id = :actorId AND m.deleted_at IS NULL AND (m.expires_at IS NULL OR m.expires_at > now())
       ORDER BY w.name`,
     { type: QueryTypes.SELECT, replacements: { actorId } },
   );

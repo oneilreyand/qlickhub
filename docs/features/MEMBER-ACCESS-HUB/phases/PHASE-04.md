@@ -1,6 +1,6 @@
 # MEMBER-ACCESS-HUB — Tahap 4: Build Phase 04 — Template peran + impor CSV
 
-**Status:** Kandidat teruji
+**Status:** Di main (#149)
 **Breakdown:** [../breakdown.md](../breakdown.md)
 **AC phase ini:** AC-4.1, AC-4.2
 **Applicable Policy IDs:** AI-009, AI-013, AI-014, AUTH-001, AUTH-014, DATA-002

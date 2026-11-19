@@ -8,7 +8,9 @@ export type WorkspaceMembershipActivityAction =
   | 'member_role_updated'
   | 'member_specialties_updated'
   | 'workspace_archived'
-  | 'workspace_restored';
+  | 'workspace_restored'
+  | 'member_expiry_updated'
+  | 'membership_expired';
 
 export interface WorkspaceMembershipActivityAttributes {
   id: string;

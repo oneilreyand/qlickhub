@@ -24,6 +24,10 @@ export const MemberAccessMembershipSchema = z.object({
   role: WorkspaceRoleSchema,
   specialties: z.array(DeveloperSpecialtySchema),
   joinedAt: z.string(),
+  /** P5: end of access (exclusive instant); null = no end date. */
+  expiresAt: z.string().nullable(),
+  /** P5: true once `expiresAt` has passed — the person can no longer enter the Workspace. */
+  expired: z.boolean(),
 });
 export type MemberAccessMembership = z.infer<typeof MemberAccessMembershipSchema>;
 
@@ -149,3 +153,23 @@ export const MemberImportResultSchema = z.object({
   rows: z.array(MemberImportRowResultSchema),
 });
 export type MemberImportResult = z.infer<typeof MemberImportResultSchema>;
+
+/**
+ * MEMBER-ACCESS-HUB P5 (ADR-046): time-bound membership. `expiresOn` is the last day of access in
+ * the Workspace's time zone; access ends at the start of the next day there. `null` removes the
+ * limit. Past dates are rejected.
+ */
+export const UpdateMemberExpirySchema = z.object({
+  expiresOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal YYYY-MM-DD')
+    .nullable(),
+});
+export type UpdateMemberExpiryInput = z.infer<typeof UpdateMemberExpirySchema>;
+
+export const MemberExpiryResultSchema = z.object({
+  workspaceId: z.string().uuid(),
+  userId: z.string().uuid(),
+  expiresAt: z.string().nullable(),
+});
+export type MemberExpiryResult = z.infer<typeof MemberExpiryResultSchema>;

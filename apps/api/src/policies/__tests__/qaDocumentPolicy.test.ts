@@ -19,11 +19,11 @@ describe('QA Document Policy Unit Tests', () => {
   test('blocks PO and Dev from creating or editing QA documents', () => {
     assert.throws(
       () => assertCanCreateQaDocument('po'),
-      /Only QA Engineer, Admin, or Owner members can create or edit QA documents/
+      /Only QA Engineer, Admin, or Owner members can create or edit QA documents/,
     );
     assert.throws(
       () => assertCanCreateQaDocument('dev'),
-      /Only QA Engineer, Admin, or Owner members can create or edit QA documents/
+      /Only QA Engineer, Admin, or Owner members can create or edit QA documents/,
     );
   });
 
@@ -50,11 +50,11 @@ describe('QA Document Policy Unit Tests', () => {
     // PO and Dev are blocked from linking QA documents
     assert.throws(
       () => assertCanLinkQaDocument('po', qaActorId, parentTask),
-      /Only QA Engineer, Admin, or Owner/
+      /Only QA Engineer, Admin, or Owner/,
     );
     assert.throws(
       () => assertCanLinkQaDocument('dev', otherActorId, parentTask),
-      /Only QA Engineer, Admin, or Owner/
+      /Only QA Engineer, Admin, or Owner/,
     );
   });
 });

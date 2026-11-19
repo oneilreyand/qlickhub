@@ -18,6 +18,7 @@ import {
   WorkspaceHoliday,
   CreateWorkspaceHolidayInput,
   WorkspaceActivityItem,
+  MemberExpiryResult,
   WorkspaceActivityListResponse,
 } from '@qlick/contracts';
 
@@ -73,6 +74,19 @@ export const workspaceService = {
       method: 'DELETE',
       body: JSON.stringify(input),
     });
+    return res.data;
+  },
+
+  /** MEMBER-ACCESS-HUB P5: last day of access (Workspace time zone); null removes the limit. */
+  async updateMemberExpiry(
+    workspaceId: string,
+    memberUserId: string,
+    expiresOn: string | null,
+  ): Promise<MemberExpiryResult> {
+    const res = await apiClient<{ data: MemberExpiryResult }>(
+      `/workspaces/${workspaceId}/members/${memberUserId}/expiry`,
+      { method: 'PUT', body: JSON.stringify({ expiresOn }) },
+    );
     return res.data;
   },
 

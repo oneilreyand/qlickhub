@@ -79,6 +79,7 @@ export async function getWorkspaceMembers(workspaceId: string) {
       role: m.role,
       specialties: specialtyValues(m),
       joinedAt: m.joinedAt,
+      expiresAt: m.expiresAt ? new Date(m.expiresAt).toISOString() : null,
       user: u
         ? {
             id: u.id,
@@ -160,7 +161,8 @@ export async function applyMemberAssignments(
   for (const assignment of assignments) {
     const workspace = workspaceById.get(assignment.workspaceId)!;
     const activityActorId = actorId || workspace.ownerId;
-    const existingMember = await WorkspaceMemberModel.findOne({
+    // Unscoped: an expired membership (MEMBER-ACCESS-HUB P5) is restored, not duplicated.
+    const existingMember = await WorkspaceMemberModel.unscoped().findOne({
       where: { workspaceId: workspace.id, userId: user.id },
       paranoid: false,
       transaction,
@@ -206,9 +208,15 @@ export async function applyMemberAssignments(
       continue;
     }
 
-    if (existingMember.deletedAt) {
+    const expired =
+      existingMember.expiresAt !== null &&
+      existingMember.expiresAt !== undefined &&
+      new Date(existingMember.expiresAt).getTime() <= Date.now();
+    const wasRemoved = Boolean(existingMember.deletedAt);
+    if (wasRemoved || expired) {
       const previousRole = existingMember.role;
-      await existingMember.restore({ transaction });
+      if (wasRemoved) await existingMember.restore({ transaction });
+      existingMember.expiresAt = null;
       existingMember.role = assignment.role;
       existingMember.joinedAt = new Date();
       await existingMember.save({ transaction });
@@ -229,6 +237,7 @@ export async function applyMemberAssignments(
             previousRole,
             restoredRole: existingMember.role,
             specialties: assignment.specialties,
+            ...(expired && !wasRemoved ? { reason: 'access_expired' } : {}),
             ...activityMetadata,
           },
         },
@@ -563,7 +572,8 @@ export async function removeWorkspaceMember(
       throw new Error('FORBIDDEN: Only an active Workspace Owner or Admin may remove members.');
     }
 
-    const targetMembership = await WorkspaceMemberModel.findOne({
+    // Unscoped: Owner/Admin may remove a member whose access already expired (P5).
+    const targetMembership = await WorkspaceMemberModel.unscoped().findOne({
       where: { workspaceId, userId: targetUserId },
       transaction,
       lock: transaction.LOCK.UPDATE,
